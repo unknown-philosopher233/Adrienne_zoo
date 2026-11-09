@@ -1,0 +1,5 @@
+Waved Albatross: WILD-0000-CODE
+Caribou: WILD-0001-CODE
+Green Sea Turtle: WILD-0002-CODE
+Blue Whale: WILD-0003-CODE
+California Sea Lion: WILD-0004-CODE

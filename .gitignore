@@ -1,1 +1,33 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+**/build/
+.gradle/
+
+# Android Studio and IntelliJ
+.idea/
+*.iml
+local.properties
+
+# Android native and packaging output
+.externalNativeBuild/
+.cxx/
+captures/
+*.apk
+*.aab
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and reports
+*.log
+reports/
+
+# Operating system files
+.DS_Store
+Thumbs.db

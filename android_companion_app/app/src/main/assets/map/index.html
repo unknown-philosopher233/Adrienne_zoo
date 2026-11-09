@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Journey Map</title>
+  <link rel="stylesheet" href="map.css">
+  <script src="map.js" defer></script>
+</head>
+<body>
+  <div class="map-card">
+    <div class="map-toolbar">
+      <div class="title-block">
+        <span class="eyebrow">RECORDED JOURNEY</span>
+        <strong id="current-date">—</strong>
+      </div>
+      <div class="map-actions">
+        <button id="btn-restart" title="Restart journey">&#8634;</button>
+        <button id="btn-play" class="play">&#9654; <span>Play</span></button>
+        <button id="btn-zoom-in" title="Zoom in">+</button>
+        <button id="btn-zoom-out" title="Zoom out">&minus;</button>
+        <button id="btn-fit" title="Fit route to view">&#x26F6; Fit</button>
+        <button id="btn-reset" title="World overview">&#127757;</button>
+      </div>
+    </div>
+
+    <div class="map-wrap">
+      <svg id="map-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
+        <path id="path-sphere" class="ocean" />
+        <g id="map-content">
+          <path id="path-graticule" class="graticule" />
+          <path id="path-land" class="land" />
+          <path id="route-ghost" fill="none" stroke="#2f5d6e" stroke-opacity="0.25" stroke-width="1.6" />
+          <path id="route-traveled" fill="none" stroke="#2f5d6e" stroke-width="3.2" stroke-linecap="round" />
+          <circle id="marker-halo" cx="-100" cy="-100" r="8" fill="#2f5d6e" opacity="0.2" />
+          <circle id="marker-dot" cx="-100" cy="-100" r="4.5" fill="#2f5d6e" stroke="#fffdf8" stroke-width="2" />
+        </g>
+      </svg>
+    </div>
+
+    <input id="timeline-slider" class="timeline" type="range" min="0" max="1" step="0.0001" value="0" aria-label="Journey progress">
+    <div class="timeline-labels">
+      <span id="start-date">—</span>
+      <span id="progress-text">0% of recorded route</span>
+      <span id="end-date">—</span>
+    </div>
+  </div>
+</body>
+</html>

@@ -16,14 +16,16 @@ data class AnimalEntity(
     val displayName: String,
     val description: String,
     val intro: String,
-    val activationCode: String,
+    val accent: String = "#27382F",
+    val imagePath: String? = null,
 
-    // Path to the local track file
+    // Path to the local track file in app internal storage
     val trackFilePath: String,
 
     val firstObservation: String?,
     val lastObservation: String?,
     val observationCount: Int,
+    val distanceKm: Double? = null,
 
     val isActivated: Boolean = false,
     val packId: String? = null

@@ -8,5 +8,6 @@ data class PackEntity(
     @PrimaryKey
     val packId: String,
     val title: String,
-    val importTimestamp: Long
+    val importTimestamp: Long,
+    val animalCount: Int = 0
 )

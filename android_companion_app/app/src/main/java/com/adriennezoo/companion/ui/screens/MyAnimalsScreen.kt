@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Pets
@@ -94,6 +95,7 @@ fun MyAnimalsScreen(
     val allPacks by viewModel.allPacks.collectAsState()
 
     var showPacksDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
     var showImportSuccessDialog by remember { mutableStateOf<ImportResult.Success?>(null) }
     var showImportErrorDialog by remember { mutableStateOf<String?>(null) }
 
@@ -131,7 +133,7 @@ fun MyAnimalsScreen(
                             letterSpacing = 2.sp
                         )
                         Text(
-                            text = "Adrienne Zoo",
+                            text = "ZooApp",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -150,6 +152,13 @@ fun MyAnimalsScreen(
                         Icon(
                             imageVector = Icons.Default.FileDownload,
                             contentDescription = "Import Pack",
+                            tint = Color.White
+                        )
+                    }
+                    IconButton(onClick = { showAboutDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "About ZooApp",
                             tint = Color.White
                         )
                     }
@@ -448,6 +457,31 @@ fun MyAnimalsScreen(
             dismissButton = {
                 TextButton(onClick = { showPacksDialog = false }) {
                     Text("Close", color = TextSecondary)
+                }
+            },
+            containerColor = LinenSurface
+        )
+    }
+
+    // About & Historical Data Disclosure Dialog
+    if (showAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAboutDialog = false },
+            title = { Text("About ZooApp", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "ZooApp uses real historical wildlife tracking observations presented as a time-released journey. Field notes are generated from movement data and may describe inferred activity. Locations shown are not live animal positions.",
+                    fontSize = 14.sp,
+                    color = TextSecondary,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showAboutDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = ForestGreenPrimary)
+                ) {
+                    Text("OK")
                 }
             },
             containerColor = LinenSurface

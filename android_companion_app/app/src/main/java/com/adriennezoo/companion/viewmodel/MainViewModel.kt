@@ -92,6 +92,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun collectAnimal(animalId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val animal = animalDao.getAnimalByIdSync(animalId) ?: return@launch
+            if (!animalDao.isAnimalUnlocked(animalId) && !animal.isActivated) {
+                animalDao.unlockAnimal(
+                    animalId = animalId,
+                    code = null,
+                    method = "COLLECTION"
+                )
+            }
+        }
+    }
+
     fun clearActivationResult() {
         _activationResult.value = null
     }

@@ -7,6 +7,7 @@ import com.adriennezoo.companion.data.CatalogMetaEntity
 import com.adriennezoo.companion.data.ImportResult
 import com.adriennezoo.companion.data.PackEntity
 import com.adriennezoo.companion.data.PackImporter
+import com.adriennezoo.companion.data.TimelineSegmentEntity
 import com.adriennezoo.companion.data.UnlockedAnimalEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -30,6 +31,7 @@ class FakeAnimalDao : AnimalDao {
     val packs = mutableListOf<PackEntity>()
     val unlocks = mutableMapOf<String, UnlockedAnimalEntity>()
     val catalogMeta = mutableMapOf<String, CatalogMetaEntity>()
+    val segments = mutableMapOf<String, TimelineSegmentEntity>()
 
     override fun getAllAnimals(): Flow<List<AnimalEntity>> = flowOf(animals.values.toList())
     override fun getActivatedAnimals(): Flow<List<AnimalEntity>> = flowOf(animals.values.filter { it.isActivated })
@@ -53,11 +55,24 @@ class FakeAnimalDao : AnimalDao {
     }
     override suspend fun getCodesForAnimal(animalId: String): List<String> =
         codes.filter { it.value == animalId }.map { it.key }
-    override suspend fun insertPack(pack: PackEntity) { packs.add(pack) }
+    override suspend fun insertPack(pack: PackEntity) {
+        packs.removeAll { it.packId == pack.packId }
+        packs.add(pack)
+    }
+    override suspend fun getPackByIdSync(packId: String): PackEntity? =
+        packs.find { it.packId == packId }
     override fun getAllPacks(): Flow<List<PackEntity>> = flowOf(packs)
 
+    override suspend fun insertTimelineSegments(segmentsToInsert: List<TimelineSegmentEntity>) {
+        segmentsToInsert.forEach { segments[it.segmentId] = it }
+    }
+    override suspend fun getTimelineSegmentsForAnimal(animalId: String): List<TimelineSegmentEntity> =
+        segments.values.filter { it.animalId == animalId }.sortedBy { it.segmentOrder }
+    override fun observeTimelineSegmentsForAnimal(animalId: String): Flow<List<TimelineSegmentEntity>> =
+        flowOf(segments.values.filter { it.animalId == animalId }.sortedBy { it.segmentOrder })
+
     override suspend fun insertUnlock(unlock: UnlockedAnimalEntity) {
-        unlocks[unlock.animalId] = unlock
+        unlocks.putIfAbsent(unlock.animalId, unlock)
     }
     override suspend fun getUnlock(animalId: String): UnlockedAnimalEntity? = unlocks[animalId]
     override suspend fun getAllUnlockedAnimalIds(): List<String> = unlocks.keys.toList()
@@ -400,5 +415,177 @@ class PackImporterTest {
 
         val owner = fakeDao.getAnimalByCode("WILD-PROF-7777")
         assertEquals("study:profcode", owner?.animalId)
+    }
+
+    private fun createV2PackStream(
+        packVersion: Int = 1,
+        replayStartAt: String? = "2026-11-12T00:00:00Z",
+        publishedAt: String? = "2026-11-12T00:00:00Z",
+        schemaVersion: Int = 2,
+        pointsJson: String = """[[-120.5, 34.2, "2020-01-01T00:00:00Z", 0], [-120.8, 34.5, "2020-01-01T12:00:00Z", 43200000]]""",
+        description: String = "Replay whale",
+        journalRef: String? = null,
+        includeJournalFile: Boolean = false
+    ): ByteArrayInputStream {
+        val baos = ByteArrayOutputStream()
+        ZipOutputStream(baos).use { zos ->
+            val replayField = if (replayStartAt != null) ""","replayStartAt": "$replayStartAt"""" else ""
+            val pubField = if (publishedAt != null) ""","publishedAt": "$publishedAt"""" else ""
+            val journalField = if (journalRef != null) ""","journal": "$journalRef"""" else ""
+
+            zos.putNextEntry(ZipEntry("manifest.json"))
+            val manifest = """
+            {
+              "format": "wildlife-pack",
+              "version": $schemaVersion,
+              "packId": "starter-replay-pack",
+              "packVersion": $packVersion,
+              "title": "Starter Replay Pack"
+              $pubField
+              $replayField,
+              "animals": [
+                {
+                  "animalId": "blue_whale:v2_01",
+                  "profile": "animals/whale.json",
+                  "track": "tracks/whale.json"
+                  $journalField
+                }
+              ]
+            }
+            """.trimIndent()
+            zos.write(manifest.toByteArray(Charsets.UTF_8))
+            zos.closeEntry()
+
+            zos.putNextEntry(ZipEntry("animals/whale.json"))
+            zos.write("""{"animalId":"blue_whale:v2_01","species":"Blue Whale","displayName":"Mara V2","description":"$description"}""".toByteArray())
+            zos.closeEntry()
+
+            zos.putNextEntry(ZipEntry("tracks/whale.json"))
+            zos.write("""{"animalId":"blue_whale:v2_01","points":$pointsJson}""".toByteArray())
+            zos.closeEntry()
+
+            if (includeJournalFile && journalRef != null) {
+                zos.putNextEntry(ZipEntry(journalRef))
+                zos.write("""[{"entryId":"e1","replayOffsetMs":0,"text":"Started journey."}]""".toByteArray())
+                zos.closeEntry()
+            }
+        }
+        return ByteArrayInputStream(baos.toByteArray())
+    }
+
+    @Test
+    fun testValidV2ReplayPackImportAndLegacyFlag() = runBlocking {
+        val result = importer.importFromStream(createV2PackStream())
+        assertTrue("Expected Success but got $result", result is ImportResult.Success)
+
+        val pack = fakeDao.getPackByIdSync("starter-replay-pack")
+        assertNotNull(pack)
+        assertEquals(2, pack?.schemaVersion)
+        assertEquals(1, pack?.packVersion)
+        assertNotNull(pack?.replayStartAtUtcMs)
+        assertNotNull(pack?.publishedAtUtcMs)
+        assertNotNull(pack?.contentHash)
+        assertTrue(pack?.isReplaySynchronized == true)
+
+        val segments = fakeDao.getTimelineSegmentsForAnimal("blue_whale:v2_01")
+        assertEquals(1, segments.size)
+        assertEquals(0L, segments[0].startOffsetMs)
+        assertEquals(43200000L, segments[0].endOffsetMs)
+        assertEquals(2, segments[0].observationCount)
+
+        // Verify legacy v1 pack without replayStartAt is NOT treated as replay-synchronized
+        val v1Result = importer.importFromStream(createValidZipStream())
+        assertTrue(v1Result is ImportResult.Success)
+        val legacyPack = fakeDao.getPackByIdSync("test-pack-1")
+        assertNotNull(legacyPack)
+        assertEquals(false, legacyPack?.isReplaySynchronized)
+        assertEquals(null, legacyPack?.replayStartAtUtcMs)
+    }
+
+    @Test
+    fun testV2MissingReplayStartAtRejected() = runBlocking {
+        val result = importer.importFromStream(createV2PackStream(replayStartAt = null))
+        assertTrue(result is ImportResult.Error)
+        assertTrue((result as ImportResult.Error).message.contains("replayStartAt"))
+    }
+
+    @Test
+    fun testV2InvalidReplayStartAtRejected() = runBlocking {
+        val result = importer.importFromStream(createV2PackStream(replayStartAt = "not-a-timestamp"))
+        assertTrue(result is ImportResult.Error)
+        assertTrue((result as ImportResult.Error).message.contains("replayStartAt"))
+    }
+
+    @Test
+    fun testV2MissingPublishedAtRejected() = runBlocking {
+        val result = importer.importFromStream(createV2PackStream(publishedAt = null))
+        assertTrue(result is ImportResult.Error)
+        assertTrue((result as ImportResult.Error).message.contains("publishedAt"))
+    }
+
+    @Test
+    fun testUnsupportedSchemaVersionRejected() = runBlocking {
+        val result = importer.importFromStream(createV2PackStream(schemaVersion = 99))
+        assertTrue(result is ImportResult.Error)
+        assertTrue((result as ImportResult.Error).message.contains("Unsupported pack schema version"))
+    }
+
+    @Test
+    fun testImmutableReleaseProtectionAndVersionUpgradePreservesUnlocks() = runBlocking {
+        // Install v1 of starter-replay-pack
+        assertTrue(importer.importFromStream(createV2PackStream(packVersion = 1, description = "Original")) is ImportResult.Success)
+        fakeDao.unlockAnimal("blue_whale:v2_01", method = "COLLECTION")
+
+        // Reimport exact same pack v1 -> idempotent success, unlock preserved
+        val idempotent = importer.importFromStream(createV2PackStream(packVersion = 1, description = "Original"))
+        assertTrue(idempotent is ImportResult.Success)
+        assertTrue(fakeDao.isAnimalUnlocked("blue_whale:v2_01"))
+
+        // Reimport modified content with SAME packVersion=1 -> MUST reject
+        val tampered = importer.importFromStream(createV2PackStream(packVersion = 1, description = "Silently Altered"))
+        assertTrue("Modified content with same packVersion must be rejected", tampered is ImportResult.Error)
+        assertTrue((tampered as ImportResult.Error).message.contains("different contents"))
+
+        // Upgrade to packVersion=2 -> succeeds and preserves unlock
+        val upgrade = importer.importFromStream(createV2PackStream(packVersion = 2, description = "Updated Release"))
+        assertTrue(upgrade is ImportResult.Success)
+        assertTrue(fakeDao.isAnimalUnlocked("blue_whale:v2_01"))
+        assertEquals("Updated Release", fakeDao.animals["blue_whale:v2_01"]?.description)
+
+        // Downgrade back to packVersion=1 -> MUST reject
+        val downgrade = importer.importFromStream(createV2PackStream(packVersion = 1, description = "Original"))
+        assertTrue(downgrade is ImportResult.Error)
+        assertTrue((downgrade as ImportResult.Error).message.contains("downgrade"))
+    }
+
+    @Test
+    fun testV2TrackChronologyAndBoundsValidation() = runBlocking {
+        // Out of order timestamps
+        val outOfOrder = createV2PackStream(
+            pointsJson = """[[-120.5, 34.2, "2020-01-02T00:00:00Z", 0], [-120.8, 34.5, "2020-01-01T00:00:00Z", 1000]]"""
+        )
+        val resChrono = importer.importFromStream(outOfOrder)
+        assertTrue(resChrono is ImportResult.Error)
+        assertTrue((resChrono as ImportResult.Error).message.contains("chronology"))
+
+        // Out of bounds coordinates
+        val badCoords = createV2PackStream(
+            pointsJson = """[[-200.0, 34.2, "2020-01-01T00:00:00Z", 0]]"""
+        )
+        val resCoords = importer.importFromStream(badCoords)
+        assertTrue(resCoords is ImportResult.Error)
+        assertTrue((resCoords as ImportResult.Error).message.contains("out-of-bounds"))
+    }
+
+    @Test
+    fun testMissingJournalReferenceRejectedAndValidAccepted() = runBlocking {
+        val missingJournal = createV2PackStream(journalRef = "journals/whale.json", includeJournalFile = false)
+        val resMissing = importer.importFromStream(missingJournal)
+        assertTrue(resMissing is ImportResult.Error)
+        assertTrue((resMissing as ImportResult.Error).message.contains("journal"))
+
+        val validJournal = createV2PackStream(journalRef = "journals/whale.json", includeJournalFile = true)
+        val resValid = importer.importFromStream(validJournal)
+        assertTrue(resValid is ImportResult.Success)
     }
 }

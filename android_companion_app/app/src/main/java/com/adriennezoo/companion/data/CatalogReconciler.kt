@@ -98,7 +98,23 @@ class CatalogReconciler(
                 }
             }
 
-            animalDao.reconcileAnimal(animal, codesToInsert)
+            val segment = TimelineSegmentEntity(
+                segmentId = "$starterPackId:$animalId:0",
+                animalId = animalId,
+                timelineId = animalId,
+                packId = starterPackId,
+                packVersion = BUNDLED_CATALOG_VERSION,
+                segmentOrder = 0,
+                trackFilePath = trackFile.absolutePath,
+                firstObservation = animal.firstObservation,
+                lastObservation = animal.lastObservation,
+                startOffsetMs = 0L,
+                endOffsetMs = 0L,
+                observationCount = animal.observationCount,
+                replayStartAtUtcMs = null
+            )
+
+            animalDao.reconcileAnimal(animal, codesToInsert, listOf(segment))
             reconciledCount++
         }
 
@@ -115,9 +131,14 @@ class CatalogReconciler(
         animalDao.insertPack(
             PackEntity(
                 packId = starterPackId,
-                title = "Adrienne Zoo Starters",
+                title = "ZooApp Starters",
                 importTimestamp = System.currentTimeMillis(),
-                animalCount = reconciledCount
+                animalCount = reconciledCount,
+                schemaVersion = 1,
+                packVersion = BUNDLED_CATALOG_VERSION,
+                publishedAtUtcMs = null,
+                replayStartAtUtcMs = null,
+                contentHash = null
             )
         )
 

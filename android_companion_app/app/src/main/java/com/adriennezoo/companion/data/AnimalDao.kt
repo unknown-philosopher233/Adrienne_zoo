@@ -48,6 +48,22 @@ interface AnimalDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPack(pack: PackEntity)
 
+    @Query("SELECT * FROM packs WHERE packId = :packId LIMIT 1")
+    suspend fun getPackByIdSync(packId: String): PackEntity?
+
+    @Query("SELECT * FROM packs ORDER BY importTimestamp DESC")
+    fun getAllPacks(): Flow<List<PackEntity>>
+
+    // Timeline segments (supports multiple segments per animal without duplicating track payloads in DB)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTimelineSegments(segments: List<TimelineSegmentEntity>)
+
+    @Query("SELECT * FROM timeline_segments WHERE animalId = :animalId ORDER BY segmentOrder ASC")
+    suspend fun getTimelineSegmentsForAnimal(animalId: String): List<TimelineSegmentEntity>
+
+    @Query("SELECT * FROM timeline_segments WHERE animalId = :animalId ORDER BY segmentOrder ASC")
+    fun observeTimelineSegmentsForAnimal(animalId: String): Flow<List<TimelineSegmentEntity>>
+
     // Unlocked animals (ownership separation)
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertUnlock(unlock: UnlockedAnimalEntity)
@@ -61,12 +77,12 @@ interface AnimalDao {
     @Query("SELECT EXISTS(SELECT 1 FROM unlocked_animals WHERE animalId = :animalId)")
     suspend fun isAnimalUnlocked(animalId: String): Boolean
 
-    // Atomic unlock preserving ownership across updates
+    // Atomic unlock preserving ownership across updates (works with or without activation code)
     @Transaction
     suspend fun unlockAnimal(
         animalId: String,
         code: String? = null,
-        method: String = "CODE",
+        method: String = if (code != null) "CODE" else "COLLECTION",
         timestamp: Long = System.currentTimeMillis()
     ) {
         insertUnlock(
@@ -91,7 +107,8 @@ interface AnimalDao {
     @Transaction
     suspend fun reconcileAnimal(
         animal: AnimalEntity,
-        codes: List<ActivationCodeEntity>
+        codes: List<ActivationCodeEntity>,
+        segments: List<TimelineSegmentEntity> = emptyList()
     ) {
         val existing = getAnimalByIdSync(animal.animalId)
         val unlocked = isAnimalUnlocked(animal.animalId) || (existing?.isActivated == true)
@@ -113,13 +130,17 @@ interface AnimalDao {
         if (codes.isNotEmpty()) {
             insertActivationCodes(codes)
         }
+        if (segments.isNotEmpty()) {
+            insertTimelineSegments(segments)
+        }
     }
 
     @Transaction
     suspend fun insertPackWithAnimals(
         pack: PackEntity,
         animals: List<AnimalEntity>,
-        codes: List<ActivationCodeEntity>
+        codes: List<ActivationCodeEntity>,
+        segments: List<TimelineSegmentEntity> = emptyList()
     ) {
         insertPack(pack)
         for (animal in animals) {
@@ -143,8 +164,8 @@ interface AnimalDao {
         if (codes.isNotEmpty()) {
             insertActivationCodes(codes)
         }
+        if (segments.isNotEmpty()) {
+            insertTimelineSegments(segments)
+        }
     }
-
-    @Query("SELECT * FROM packs ORDER BY importTimestamp DESC")
-    fun getAllPacks(): Flow<List<PackEntity>>
 }

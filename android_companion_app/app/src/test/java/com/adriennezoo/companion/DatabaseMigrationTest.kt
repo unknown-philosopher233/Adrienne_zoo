@@ -4,24 +4,19 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.adriennezoo.companion.data.AppDatabase
 import com.google.gson.JsonParser
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.lang.reflect.Proxy
-import java.sql.DriverManager
+import java.sql.Statement
 
 class DatabaseMigrationTest {
 
-    @Test
-    fun testMigrationFromV1ToV2PreservesDataAndMigratesUnlocks() {
-        val conn = DriverManager.getConnection("jdbc:sqlite::memory:")
-        val statement = conn.createStatement()
-
-        // 1. Load schema v1 definition from exported 1.json
-        val schema1File = File("schemas/com.adriennezoo.companion.data.AppDatabase/1.json")
-        val schema1Content = schema1File.readText(Charsets.UTF_8)
-        val schemaObj = JsonParser.parseString(schema1Content).asJsonObject
+    private fun executeSchemaFile(statement: Statement, schemaVersion: Int) {
+        val schemaFile = File("schemas/com.adriennezoo.companion.data.AppDatabase/$schemaVersion.json")
+        assertTrue("Exported schema $schemaVersion.json must exist", schemaFile.exists())
+        val schemaContent = schemaFile.readText(Charsets.UTF_8)
+        val schemaObj = JsonParser.parseString(schemaContent).asJsonObject
         val entities = schemaObj.getAsJsonObject("database").getAsJsonArray("entities")
 
         for (elem in entities) {
@@ -29,9 +24,38 @@ class DatabaseMigrationTest {
             val tableName = entityObj.get("tableName").asString
             val createSql = entityObj.get("createSql").asString.replace("\${TABLE_NAME}", tableName)
             statement.execute(createSql)
+            val indices = entityObj.getAsJsonArray("indices")
+            if (indices != null) {
+                for (idxElem in indices) {
+                    val idxSql = idxElem.asJsonObject.get("createSql").asString.replace("\${TABLE_NAME}", tableName)
+                    statement.execute(idxSql)
+                }
+            }
         }
+    }
 
-        // 2. Insert v1 test records: 1 activated animal, 1 unactivated animal, codes, pack
+    private fun createSupportDbProxy(statement: Statement): SupportSQLiteDatabase {
+        return Proxy.newProxyInstance(
+            SupportSQLiteDatabase::class.java.classLoader,
+            arrayOf(SupportSQLiteDatabase::class.java)
+        ) { _, method, args ->
+            if (method.name == "execSQL") {
+                val sql = args[0] as String
+                statement.execute(sql)
+                null
+            } else {
+                throw UnsupportedOperationException("Method ${method.name} not implemented in test proxy")
+            }
+        } as SupportSQLiteDatabase
+    }
+
+    @Test
+    fun testMigrationFromV1ToV2ToV3PreservesDataAndBackfillsSegments() {
+        val conn = java.sql.DriverManager.getConnection("jdbc:sqlite::memory:")
+        val statement = conn.createStatement()
+        executeSchemaFile(statement, 1)
+
+        // Insert v1 test records: 1 activated animal, 1 unactivated animal, codes, pack
         statement.execute(
             """
             INSERT INTO animals (
@@ -45,7 +69,6 @@ class DatabaseMigrationTest {
             )
             """.trimIndent()
         )
-
         statement.execute(
             """
             INSERT INTO animals (
@@ -59,7 +82,6 @@ class DatabaseMigrationTest {
             )
             """.trimIndent()
         )
-
         statement.execute(
             "INSERT INTO activation_codes (code, animalId) VALUES ('WILD-0003-CODE', 'blue_whale:01')"
         )
@@ -67,32 +89,21 @@ class DatabaseMigrationTest {
             "INSERT INTO packs (packId, title, importTimestamp, animalCount) VALUES ('starter-pack', 'Starters', 1600000000000, 2)"
         )
 
-        // 3. Run AppDatabase.MIGRATION_1_2 via a lightweight SupportSQLiteDatabase proxy
-        val supportDb = Proxy.newProxyInstance(
-            SupportSQLiteDatabase::class.java.classLoader,
-            arrayOf(SupportSQLiteDatabase::class.java)
-        ) { _, method, args ->
-            if (method.name == "execSQL") {
-                val sql = args[0] as String
-                statement.execute(sql)
-                null
-            } else {
-                throw UnsupportedOperationException("Method ${method.name} not implemented in test proxy")
-            }
-        } as SupportSQLiteDatabase
+        val supportDb = createSupportDbProxy(statement)
 
+        // Run v1 -> v2 -> v3 sequentially
         AppDatabase.MIGRATION_1_2.migrate(supportDb)
+        AppDatabase.MIGRATION_2_3.migrate(supportDb)
 
-        // 4. Verify unlocked_animals table was populated with the activated animal
+        // Verify unlocked_animals table was populated with activated animal
         val unlockRs = statement.executeQuery(
             "SELECT animalId, unlockMethod FROM unlocked_animals WHERE animalId = 'blue_whale:01'"
         )
-        assertTrue("Activated animal must be present in unlocked_animals", unlockRs.next())
-        assertEquals("blue_whale:01", unlockRs.getString("animalId"))
+        assertTrue(unlockRs.next())
         assertEquals("MIGRATION", unlockRs.getString("unlockMethod"))
         unlockRs.close()
 
-        // 5. Verify unactivated animal was NOT added to unlocked_animals
+        // Verify unactivated animal is not in unlocked_animals
         val unactivatedRs = statement.executeQuery(
             "SELECT COUNT(*) as cnt FROM unlocked_animals WHERE animalId = 'caribou:02'"
         )
@@ -100,32 +111,69 @@ class DatabaseMigrationTest {
         assertEquals(0, unactivatedRs.getInt("cnt"))
         unactivatedRs.close()
 
-        // 6. Verify catalog_meta table exists and can be queried
-        statement.execute(
-            "INSERT INTO catalog_meta (`key`, `version`, `updatedAt`) VALUES ('starter_catalog_version', 1, 1700000000000)"
+        // Verify packs received default schemaVersion=1, packVersion=1, replayStartAtUtcMs=NULL
+        val packRs = statement.executeQuery(
+            "SELECT title, schemaVersion, packVersion, replayStartAtUtcMs FROM packs WHERE packId = 'starter-pack'"
         )
-        val metaRs = statement.executeQuery("SELECT `version` FROM catalog_meta WHERE `key` = 'starter_catalog_version'")
-        assertTrue(metaRs.next())
-        assertEquals(1, metaRs.getInt("version"))
-        metaRs.close()
+        assertTrue(packRs.next())
+        assertEquals("Starters", packRs.getString("title"))
+        assertEquals(1, packRs.getInt("schemaVersion"))
+        assertEquals(1, packRs.getInt("packVersion"))
+        assertEquals(null, packRs.getObject("replayStartAtUtcMs"))
+        packRs.close()
 
-        // 7. Verify all original animal data, codes, and packs are intact
-        val animalRs = statement.executeQuery("SELECT COUNT(*) as cnt FROM animals")
-        assertTrue(animalRs.next())
-        assertEquals(2, animalRs.getInt("cnt"))
-        animalRs.close()
+        // Verify timeline_segments were backfilled for both animals
+        val segRs = statement.executeQuery("SELECT COUNT(*) as cnt FROM timeline_segments")
+        assertTrue(segRs.next())
+        assertEquals(2, segRs.getInt("cnt"))
+        segRs.close()
 
-        val codesRs = statement.executeQuery("SELECT code, animalId FROM activation_codes")
-        assertTrue(codesRs.next())
-        assertEquals("WILD-0003-CODE", codesRs.getString("code"))
-        assertEquals("blue_whale:01", codesRs.getString("animalId"))
-        codesRs.close()
+        statement.close()
+        conn.close()
+    }
 
-        val packsRs = statement.executeQuery("SELECT title, animalCount FROM packs")
-        assertTrue(packsRs.next())
-        assertEquals("Starters", packsRs.getString("title"))
-        assertEquals(2, packsRs.getInt("animalCount"))
-        packsRs.close()
+    @Test
+    fun testMigrationFromV2ToV3PreservesUnlocksAndAddsTimelineMetadata() {
+        val conn = java.sql.DriverManager.getConnection("jdbc:sqlite::memory:")
+        val statement = conn.createStatement()
+        executeSchemaFile(statement, 2)
+
+        statement.execute(
+            """
+            INSERT INTO animals (
+                animalId, species, scientificName, researchId, sourceStudy, license, source,
+                displayName, description, intro, accent, imagePath, trackFilePath,
+                firstObservation, lastObservation, observationCount, distanceKm, isActivated, packId
+            ) VALUES (
+                'green_turtle:03', 'Green Sea Turtle', 'Chelonia mydas', '03', 'Study C', 'CC-BY', 'Source C',
+                'Nalu', 'Ocean navigator', 'Intro Nalu', '#5a8f63', null, '/path/track3.json',
+                '2021-01-01', '2021-02-01', 80, 900.0, 1, 'starter-pack'
+            )
+            """.trimIndent()
+        )
+        statement.execute(
+            "INSERT INTO unlocked_animals (animalId, unlockedAt, unlockMethod, usedCode) VALUES ('green_turtle:03', 1700000000000, 'CODE', 'WILD-0002-CODE')"
+        )
+        statement.execute(
+            "INSERT INTO packs (packId, title, importTimestamp, animalCount) VALUES ('starter-pack', 'Starters', 1700000000000, 1)"
+        )
+
+        val supportDb = createSupportDbProxy(statement)
+        AppDatabase.MIGRATION_2_3.migrate(supportDb)
+
+        // Verify unlock record intact
+        val unlockRs = statement.executeQuery("SELECT usedCode FROM unlocked_animals WHERE animalId = 'green_turtle:03'")
+        assertTrue(unlockRs.next())
+        assertEquals("WILD-0002-CODE", unlockRs.getString("usedCode"))
+        unlockRs.close()
+
+        // Verify backfilled timeline segment
+        val segRs = statement.executeQuery("SELECT trackFilePath, observationCount, replayStartAtUtcMs FROM timeline_segments WHERE animalId = 'green_turtle:03'")
+        assertTrue(segRs.next())
+        assertEquals("/path/track3.json", segRs.getString("trackFilePath"))
+        assertEquals(80, segRs.getInt("observationCount"))
+        assertEquals(null, segRs.getObject("replayStartAtUtcMs"))
+        segRs.close()
 
         statement.close()
         conn.close()

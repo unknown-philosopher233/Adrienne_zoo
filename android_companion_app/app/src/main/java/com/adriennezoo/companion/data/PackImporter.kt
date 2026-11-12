@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
@@ -60,25 +61,23 @@ class PackImporter(
                 while (entry != null) {
                     entryCount++
                     if (entryCount > maxEntries) {
-                        return@withContext ImportResult.Error("Pack contains too many files (max $maxEntries)")
+                        return@withContext ImportResult.Error("Pack contains too many files (maximum $maxEntries)")
                     }
 
                     val name = entry.name.replace('\\', '/')
-                    // Zip slip protection
-                    if (name.contains("..")) {
-                        return@withContext ImportResult.Error("Invalid entry name in archive: $name")
+                    // Zip slip and unsafe path protection
+                    if (name.contains("..") || name.startsWith("/") || name.contains(":/")) {
+                        return@withContext ImportResult.Error("Unsafe or invalid entry name in archive: $name")
                     }
 
                     if (!entry.isDirectory) {
                         val baos = ByteArrayOutputStream()
                         val buffer = ByteArray(8192)
                         var read: Int
-                        var entryBytes = 0L
                         while (zis.read(buffer).also { read = it } != -1) {
-                            entryBytes += read
                             totalBytes += read
                             if (totalBytes > maxTotalBytes) {
-                                return@withContext ImportResult.Error("Pack exceeds maximum allowed size (50MB)")
+                                return@withContext ImportResult.Error("Pack uncompressed size exceeds maximum allowed (50MB)")
                             }
                             baos.write(buffer, 0, read)
                         }
@@ -97,9 +96,9 @@ class PackImporter(
             ?: entriesMap.entries.find { it.key.endsWith("manifest.json") }?.value
             ?: return@withContext ImportResult.Error("Missing manifest.json in pack archive")
 
-        val manifestString = manifestBytes.toString(Charsets.UTF_8)
         val manifestJson: JsonObject
         try {
+            val manifestString = manifestBytes.toString(Charsets.UTF_8)
             manifestJson = JsonParser.parseString(manifestString).asJsonObject
         } catch (e: Exception) {
             return@withContext ImportResult.Error("Malformed manifest.json: ${e.message}")
@@ -128,9 +127,13 @@ class PackImporter(
         var importedCount = 0
         val animalsToInsert = mutableListOf<AnimalEntity>()
         val codesToInsert = mutableListOf<ActivationCodeEntity>()
+        val claimedCodesInThisPack = mutableMapOf<String, String>() // code -> animalId
 
         for (i in 0 until animalsArray.size()) {
-            val itemObj = animalsArray.get(i).asJsonObject
+            val itemElement = animalsArray.get(i)
+            if (!itemElement.isJsonObject) continue
+            val itemObj = itemElement.asJsonObject
+
             val animalId = itemObj.get("animalId")?.asString
                 ?: return@withContext ImportResult.Error("Animal entry $i is missing animalId")
 
@@ -166,11 +169,53 @@ class PackImporter(
                 return@withContext ImportResult.Error("Track JSON for $animalId has empty points array")
             }
 
+            // Validate coordinates: [lon, lat, timestamp]
+            val validPoints = JsonArray()
+            var firstValidObs: String? = null
+            var lastValidObs: String? = null
+
+            for (pIdx in 0 until pointsArray.size()) {
+                val ptElem = pointsArray.get(pIdx)
+                if (!ptElem.isJsonArray) continue
+                val pt = ptElem.asJsonArray
+                if (pt.size() < 2) continue
+
+                val lon = try { pt.get(0).asDouble } catch (_: Exception) { Double.NaN }
+                val lat = try { pt.get(1).asDouble } catch (_: Exception) { Double.NaN }
+
+                if (lon.isNaN() || lat.isNaN()) continue
+                if (lat < -90.0 || lat > 90.0) continue
+                // Longitude between -180 and 180 (allow -360..360 for world wrap)
+                if (lon < -360.0 || lon > 360.0) continue
+
+                val ts = if (pt.size() >= 3) {
+                    val tsEl = pt.get(2)
+                    if (tsEl.isJsonPrimitive) {
+                        val prim = tsEl.asJsonPrimitive
+                        if (prim.isNumber) prim.asLong.toString() else prim.asString
+                    } else null
+                } else null
+
+                if (firstValidObs == null && ts != null) firstValidObs = ts
+                if (ts != null) lastValidObs = ts
+
+                validPoints.add(pt)
+            }
+
+            if (validPoints.size() == 0) {
+                return@withContext ImportResult.Error("Track JSON for $animalId contains no valid coordinate points")
+            }
+
             val safeId = animalId.replace(Regex("[^a-zA-Z0-9_-]"), "_")
 
-            // Write track to app internal storage
+            // Write validated track to app internal storage
             val trackFile = File(tracksDir, "${safeId}.json")
-            FileOutputStream(trackFile).use { it.write(trackBytes) }
+            val sanitizedTrackObj = JsonObject()
+            sanitizedTrackObj.addProperty("animalId", animalId)
+            sanitizedTrackObj.add("points", validPoints)
+            FileOutputStream(trackFile).use {
+                it.write(sanitizedTrackObj.toString().toByteArray(Charsets.UTF_8))
+            }
 
             // Handle optional image
             var localImagePath: String? = null
@@ -179,25 +224,20 @@ class PackImporter(
                 val imgBytes = entriesMap[imgRef]
                     ?: entriesMap.entries.find { it.key.endsWith(File(imgRef).name) }?.value
                 if (imgBytes != null) {
-                    val ext = if (imgRef.contains('.')) imgRef.substringAfterLast('.') else "png"
+                    val rawExt = if (imgRef.contains('.')) imgRef.substringAfterLast('.').lowercase() else "png"
+                    val ext = when (rawExt) {
+                        "jpg", "jpeg" -> "jpg"
+                        "webp" -> "webp"
+                        "svg" -> "svg"
+                        else -> "png"
+                    }
                     val imgFile = File(imagesDir, "${safeId}.${ext}")
-                    FileOutputStream(imgFile).use { it.write(imgBytes) }
-                    localImagePath = imgFile.absolutePath
+                    if (imgFile.canonicalPath.startsWith(imagesDir.canonicalPath)) {
+                        FileOutputStream(imgFile).use { it.write(imgBytes) }
+                        localImagePath = imgFile.absolutePath
+                    }
                 }
             }
-
-            // Calculate track observations
-            val firstObs = try {
-                pointsArray.get(0).asJsonArray.get(2).asString
-            } catch (_: Exception) {
-                null
-            }
-            val lastObs = try {
-                pointsArray.get(pointsArray.size() - 1).asJsonArray.get(2).asString
-            } catch (_: Exception) {
-                null
-            }
-            val count = pointsArray.size()
 
             val species = profileJson.get("species")?.asString ?: "Unknown Species"
             val scientificName = profileJson.get("scientificName")?.asString
@@ -213,7 +253,7 @@ class PackImporter(
 
             // Check if existing animal in DB to preserve activation state
             val existing = animalDao.getAnimalByIdSync(animalId)
-            val isActivated = existing?.isActivated ?: false
+            val isActivated = animalDao.isAnimalUnlocked(animalId) || (existing?.isActivated == true)
 
             val entity = AnimalEntity(
                 animalId = animalId,
@@ -229,41 +269,56 @@ class PackImporter(
                 accent = accent,
                 imagePath = localImagePath ?: existing?.imagePath,
                 trackFilePath = trackFile.absolutePath,
-                firstObservation = firstObs,
-                lastObservation = lastObs,
-                observationCount = count,
+                firstObservation = firstValidObs ?: existing?.firstObservation,
+                lastObservation = lastValidObs ?: existing?.lastObservation,
+                observationCount = validPoints.size(),
                 distanceKm = distanceKm ?: existing?.distanceKm,
                 isActivated = isActivated,
                 packId = packId
             )
             animalsToInsert.add(entity)
 
-            // Process activation codes
+            // Process activation codes deterministically with fallbacks
+            val codesList = mutableListOf<String>()
             val codesArray = itemObj.getAsJsonArray("activationCodes")
+                ?: profileJson.getAsJsonArray("activationCodes")
             if (codesArray != null) {
                 for (c in 0 until codesArray.size()) {
                     val codeStr = codesArray.get(c).asString.trim().uppercase()
-                    if (codeStr.isNotEmpty()) {
-                        codesToInsert.add(ActivationCodeEntity(code = codeStr, animalId = animalId))
-                    }
+                    if (codeStr.isNotEmpty()) codesList.add(codeStr)
                 }
+            }
+            val singleCode = itemObj.get("activationCode")?.asString
+                ?: profileJson.get("activationCode")?.asString
+            if (!singleCode.isNullOrBlank()) {
+                val codeStr = singleCode.trim().uppercase()
+                if (codeStr.isNotEmpty()) codesList.add(codeStr)
+            }
+
+            for (codeStr in codesList.distinct()) {
+                // Check duplicate mapping: does this code belong to a different animal?
+                val existingOwner = animalDao.getAnimalIdByCode(codeStr) ?: claimedCodesInThisPack[codeStr]
+                if (existingOwner != null && existingOwner != animalId) {
+                    Log.w(TAG, "Code $codeStr is already assigned to $existingOwner, ignoring for $animalId")
+                    continue
+                }
+                claimedCodesInThisPack[codeStr] = animalId
+                codesToInsert.add(ActivationCodeEntity(code = codeStr, animalId = animalId))
             }
 
             importedCount++
         }
 
-        // Insert into database
-        animalDao.insertAnimals(animalsToInsert)
-        if (codesToInsert.isNotEmpty()) {
-            animalDao.insertActivationCodes(codesToInsert)
-        }
-        animalDao.insertPack(
-            PackEntity(
+        // Insert into database atomically inside a Room transaction
+        animalDao.insertPackWithAnimals(
+            pack = PackEntity(
                 packId = packId,
                 title = packTitle,
                 importTimestamp = System.currentTimeMillis(),
                 animalCount = importedCount
-            )
+            ),
+            animals = animalsToInsert,
+            codes = codesToInsert
         )
 
         Log.i(TAG, "Successfully imported pack '$packTitle' with $importedCount animals")

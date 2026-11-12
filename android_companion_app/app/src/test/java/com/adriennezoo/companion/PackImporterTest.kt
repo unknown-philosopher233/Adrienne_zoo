@@ -3,9 +3,11 @@ package com.adriennezoo.companion
 import com.adriennezoo.companion.data.ActivationCodeEntity
 import com.adriennezoo.companion.data.AnimalDao
 import com.adriennezoo.companion.data.AnimalEntity
+import com.adriennezoo.companion.data.CatalogMetaEntity
 import com.adriennezoo.companion.data.ImportResult
 import com.adriennezoo.companion.data.PackEntity
 import com.adriennezoo.companion.data.PackImporter
+import com.adriennezoo.companion.data.UnlockedAnimalEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -26,6 +28,8 @@ class FakeAnimalDao : AnimalDao {
     val animals = mutableMapOf<String, AnimalEntity>()
     val codes = mutableMapOf<String, String>()
     val packs = mutableListOf<PackEntity>()
+    val unlocks = mutableMapOf<String, UnlockedAnimalEntity>()
+    val catalogMeta = mutableMapOf<String, CatalogMetaEntity>()
 
     override fun getAllAnimals(): Flow<List<AnimalEntity>> = flowOf(animals.values.toList())
     override fun getActivatedAnimals(): Flow<List<AnimalEntity>> = flowOf(animals.values.filter { it.isActivated })
@@ -51,6 +55,19 @@ class FakeAnimalDao : AnimalDao {
         codes.filter { it.value == animalId }.map { it.key }
     override suspend fun insertPack(pack: PackEntity) { packs.add(pack) }
     override fun getAllPacks(): Flow<List<PackEntity>> = flowOf(packs)
+
+    override suspend fun insertUnlock(unlock: UnlockedAnimalEntity) {
+        unlocks[unlock.animalId] = unlock
+    }
+    override suspend fun getUnlock(animalId: String): UnlockedAnimalEntity? = unlocks[animalId]
+    override suspend fun getAllUnlockedAnimalIds(): List<String> = unlocks.keys.toList()
+    override suspend fun isAnimalUnlocked(animalId: String): Boolean =
+        unlocks.containsKey(animalId) || animals[animalId]?.isActivated == true
+
+    override suspend fun setCatalogMeta(meta: CatalogMetaEntity) {
+        catalogMeta[meta.key] = meta
+    }
+    override suspend fun getCatalogMeta(key: String): CatalogMetaEntity? = catalogMeta[key]
 }
 
 class PackImporterTest {
@@ -179,6 +196,108 @@ class PackImporterTest {
     }
 
     @Test
+    fun testDuplicateCodeCollisionHandledDeterministically() = runBlocking {
+        val baos = ByteArrayOutputStream()
+        ZipOutputStream(baos).use { zos ->
+            zos.putNextEntry(ZipEntry("manifest.json"))
+            val manifest = """
+            {
+              "format": "wildlife-pack",
+              "version": 1,
+              "packId": "collision-pack",
+              "title": "Collision Test",
+              "animals": [
+                {
+                  "animalId": "study:first",
+                  "profile": "animals/first.json",
+                  "track": "tracks/first.json",
+                  "activationCodes": ["WILD-SHARED-CODE"]
+                },
+                {
+                  "animalId": "study:second",
+                  "profile": "animals/second.json",
+                  "track": "tracks/second.json",
+                  "activationCodes": ["WILD-SHARED-CODE"]
+                }
+              ]
+            }
+            """.trimIndent()
+            zos.write(manifest.toByteArray())
+            zos.closeEntry()
+
+            listOf("first", "second").forEach { id ->
+                zos.putNextEntry(ZipEntry("animals/$id.json"))
+                zos.write("""{"displayName":"Animal $id","species":"Species $id"}""".toByteArray())
+                zos.closeEntry()
+
+                zos.putNextEntry(ZipEntry("tracks/$id.json"))
+                zos.write("""{"animalId":"study:$id","points":[[-120.0, 34.0, 1000]]}""".toByteArray())
+                zos.closeEntry()
+            }
+        }
+
+        val result = importer.importFromStream(ByteArrayInputStream(baos.toByteArray()))
+        assertTrue(result is ImportResult.Success)
+
+        // The code should belong to the first animal, not overwritten by second
+        val owner = fakeDao.getAnimalByCode("WILD-SHARED-CODE")
+        assertEquals("study:first", owner?.animalId)
+    }
+
+    @Test
+    fun testInvalidCoordinatesFilteredOut() = runBlocking {
+        val baos = ByteArrayOutputStream()
+        ZipOutputStream(baos).use { zos ->
+            zos.putNextEntry(ZipEntry("manifest.json"))
+            val manifest = """
+            {
+              "format": "wildlife-pack",
+              "version": 1,
+              "packId": "coord-pack",
+              "title": "Coord Test",
+              "animals": [
+                {
+                  "animalId": "study:coord",
+                  "profile": "animals/coord.json",
+                  "track": "tracks/coord.json",
+                  "activationCodes": ["WILD-COORD-CODE"]
+                }
+              ]
+            }
+            """.trimIndent()
+            zos.write(manifest.toByteArray())
+            zos.closeEntry()
+
+            zos.putNextEntry(ZipEntry("animals/coord.json"))
+            zos.write("""{"displayName":"Coord Animal","species":"Test"}""".toByteArray())
+            zos.closeEntry()
+
+            zos.putNextEntry(ZipEntry("tracks/coord.json"))
+            // Point 1: valid, Point 2: invalid latitude (150 > 90), Point 3: valid
+            val track = """
+            {
+              "animalId": "study:coord",
+              "points": [
+                [-120.0, 34.0, 1000],
+                [-120.0, 150.0, 2000],
+                [-121.0, 35.0, 3000]
+              ]
+            }
+            """.trimIndent()
+            zos.write(track.toByteArray())
+            zos.closeEntry()
+        }
+
+        val result = importer.importFromStream(ByteArrayInputStream(baos.toByteArray()))
+        assertTrue(result is ImportResult.Success)
+
+        val animal = fakeDao.animals["study:coord"]
+        assertNotNull(animal)
+        // Only 2 valid points should be kept
+        assertEquals(2, animal?.observationCount)
+    }
+
+    @Test
     fun testMissingManifestRejected() = runBlocking {
         val baos = ByteArrayOutputStream()
         ZipOutputStream(baos).use { zos ->
@@ -201,6 +320,85 @@ class PackImporterTest {
         }
         val result = importer.importFromStream(ByteArrayInputStream(baos.toByteArray()))
         assertTrue(result is ImportResult.Error)
-        assertTrue((result as ImportResult.Error).message.contains("Invalid entry name"))
+        assertTrue((result as ImportResult.Error).message.contains("Unsafe or invalid entry name"))
+    }
+
+    @Test
+    fun testSingularActivationCodeSupported() = runBlocking {
+        val baos = ByteArrayOutputStream()
+        ZipOutputStream(baos).use { zos ->
+            zos.putNextEntry(ZipEntry("manifest.json"))
+            val manifest = """
+            {
+              "format": "wildlife-pack",
+              "version": 1,
+              "packId": "singular-code-pack",
+              "title": "Singular Code Test",
+              "animals": [
+                {
+                  "animalId": "study:singular",
+                  "profile": "animals/singular.json",
+                  "track": "tracks/singular.json",
+                  "activationCode": "WILD-SNGL-9999"
+                }
+              ]
+            }
+            """.trimIndent()
+            zos.write(manifest.toByteArray())
+            zos.closeEntry()
+
+            zos.putNextEntry(ZipEntry("animals/singular.json"))
+            zos.write("""{"displayName":"Singular Animal","species":"Test"}""".toByteArray())
+            zos.closeEntry()
+
+            zos.putNextEntry(ZipEntry("tracks/singular.json"))
+            zos.write("""{"animalId":"study:singular","points":[[-120.0, 34.0, 1000]]}""".toByteArray())
+            zos.closeEntry()
+        }
+
+        val result = importer.importFromStream(ByteArrayInputStream(baos.toByteArray()))
+        assertTrue(result is ImportResult.Success)
+
+        val owner = fakeDao.getAnimalByCode("WILD-SNGL-9999")
+        assertEquals("study:singular", owner?.animalId)
+    }
+
+    @Test
+    fun testProfileLevelActivationCodeFallback() = runBlocking {
+        val baos = ByteArrayOutputStream()
+        ZipOutputStream(baos).use { zos ->
+            zos.putNextEntry(ZipEntry("manifest.json"))
+            val manifest = """
+            {
+              "format": "wildlife-pack",
+              "version": 1,
+              "packId": "profile-code-pack",
+              "title": "Profile Code Test",
+              "animals": [
+                {
+                  "animalId": "study:profcode",
+                  "profile": "animals/profcode.json",
+                  "track": "tracks/profcode.json"
+                }
+              ]
+            }
+            """.trimIndent()
+            zos.write(manifest.toByteArray())
+            zos.closeEntry()
+
+            zos.putNextEntry(ZipEntry("animals/profcode.json"))
+            zos.write("""{"displayName":"ProfCode Animal","species":"Test","activationCodes":["WILD-PROF-7777"]}""".toByteArray())
+            zos.closeEntry()
+
+            zos.putNextEntry(ZipEntry("tracks/profcode.json"))
+            zos.write("""{"animalId":"study:profcode","points":[[-120.0, 34.0, 1000]]}""".toByteArray())
+            zos.closeEntry()
+        }
+
+        val result = importer.importFromStream(ByteArrayInputStream(baos.toByteArray()))
+        assertTrue(result is ImportResult.Success)
+
+        val owner = fakeDao.getAnimalByCode("WILD-PROF-7777")
+        assertEquals("study:profcode", owner?.animalId)
     }
 }

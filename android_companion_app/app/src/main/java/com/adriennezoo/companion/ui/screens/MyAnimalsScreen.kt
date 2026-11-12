@@ -120,6 +120,7 @@ fun MyAnimalsScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = {

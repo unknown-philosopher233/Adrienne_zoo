@@ -55,6 +55,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.toColorInt
 import com.adriennezoo.companion.ui.components.JourneyMapView
 import com.adriennezoo.companion.ui.components.formatDateDisplay
 import com.adriennezoo.companion.ui.theme.BorderColor
@@ -84,6 +85,7 @@ fun AnimalProfileScreen(
     val animal by animalFlow.collectAsState(initial = null)
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = {
@@ -133,7 +135,7 @@ fun AnimalProfileScreen(
             }
         } else {
             val accentColor = try {
-                Color(android.graphics.Color.parseColor(currentAnimal.accent))
+                Color(currentAnimal.accent.toColorInt())
             } catch (_: Exception) {
                 ForestGreenPrimary
             }

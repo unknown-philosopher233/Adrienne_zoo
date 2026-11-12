@@ -104,7 +104,7 @@ object ReplayTimeContract {
         }
         val elapsed = elapsedMillis(replayStartAtUtcMillis, now)
         val safeDuration = maxOf(0L, timelineDurationMillis)
-        val phase = if (elapsed >= safeDuration && safeDuration > 0L) {
+        val phase = if (safeDuration in 1L..elapsed) {
             ReplayPhase.END_OF_DATA
         } else {
             ReplayPhase.ACTIVE

@@ -92,7 +92,7 @@ class CatalogReconciliationTest {
         assertFalse(fakeDao.isAnimalUnlocked("green_turtle:173362"))
 
         // Unlock Mara using activation code
-        fakeDao.unlockAnimal("blue_whale:2008CA-Bmu-00830", code = "WILD-0003-CODE", method = "CODE")
+        fakeDao.unlockAnimal("blue_whale:2008CA-Bmu-00830", code = "WILD-0003-CODE", method = "CODE", timestamp = System.currentTimeMillis())
         assertTrue(fakeDao.isAnimalUnlocked("blue_whale:2008CA-Bmu-00830"))
         assertTrue(fakeDao.getAnimalByIdSync("blue_whale:2008CA-Bmu-00830")!!.isActivated)
 

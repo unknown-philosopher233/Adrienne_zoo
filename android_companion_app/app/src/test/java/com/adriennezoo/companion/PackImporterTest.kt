@@ -534,7 +534,7 @@ class PackImporterTest {
     fun testImmutableReleaseProtectionAndVersionUpgradePreservesUnlocks() = runBlocking {
         // Install v1 of starter-replay-pack
         assertTrue(importer.importFromStream(createV2PackStream(packVersion = 1, description = "Original")) is ImportResult.Success)
-        fakeDao.unlockAnimal("blue_whale:v2_01", method = "COLLECTION")
+        fakeDao.unlockAnimal("blue_whale:v2_01", code = null, method = "COLLECTION", timestamp = System.currentTimeMillis())
 
         // Reimport exact same pack v1 -> idempotent success, unlock preserved
         val idempotent = importer.importFromStream(createV2PackStream(packVersion = 1, description = "Original"))
@@ -587,5 +587,55 @@ class PackImporterTest {
         val validJournal = createV2PackStream(journalRef = "journals/whale.json", includeJournalFile = true)
         val resValid = importer.importFromStream(validJournal)
         assertTrue(resValid is ImportResult.Success)
+    }
+
+    @Test
+    fun testStarterPack1V2PipelineArtifactImportsCleanly() = runBlocking {
+        val candidates = listOf(
+            File("../packs/starter-pack-1.wildpack"),
+            File("../../packs/starter-pack-1.wildpack"),
+            File("packs/starter-pack-1.wildpack")
+        )
+        val packFile = candidates.firstOrNull { it.exists() }
+        assertNotNull("Expected generated packs/starter-pack-1.wildpack to exist", packFile)
+
+        val reportFile = File(packFile!!.parentFile, "starter-pack-1.build-report.json")
+        assertTrue("Expected starter-pack-1.build-report.json to exist", reportFile.exists())
+        val expectedHash = com.google.gson.JsonParser.parseString(reportFile.readText())
+            .asJsonObject.get("contentHash").asString
+
+        val firstImport = packFile.inputStream().use { importer.importFromStream(it) }
+        assertTrue("Expected Success but got $firstImport", firstImport is ImportResult.Success)
+        val success = firstImport as ImportResult.Success
+        assertEquals("Starter Pack 1", success.packTitle)
+        assertEquals(5, success.animalCount)
+
+        val pack = fakeDao.getPackByIdSync("starter-pack-1")
+        assertNotNull(pack)
+        assertEquals(2, pack?.schemaVersion)
+        assertEquals(1, pack?.packVersion)
+        assertEquals(1794441600000L, pack?.replayStartAtUtcMs)
+        assertTrue(pack?.isReplaySynchronized == true)
+        assertEquals(expectedHash, pack?.contentHash)
+
+        // All 5 curated CC0 animals should have non-zero timeline durations
+        val expectedIds = listOf(
+            "blue_whale:2008CA-Bmu-00830",
+            "seal:seal 2004025",
+            "green_turtle:52189",
+            "albatross:1163-1163",
+            "godwit:Bordeaux"
+        )
+        for (animalId in expectedIds) {
+            val segments = fakeDao.getTimelineSegmentsForAnimal(animalId)
+            assertEquals("Expected 1 segment for $animalId", 1, segments.size)
+            assertEquals(0L, segments[0].startOffsetMs)
+            assertTrue("Expected positive duration for $animalId", segments[0].endOffsetMs > 0L)
+            assertTrue("Expected >= 100 observations for $animalId", segments[0].observationCount >= 100)
+        }
+
+        // Re-importing the identical pack must be idempotent
+        val reimport = packFile.inputStream().use { importer.importFromStream(it) }
+        assertTrue("Expected idempotent re-import Success but got $reimport", reimport is ImportResult.Success)
     }
 }

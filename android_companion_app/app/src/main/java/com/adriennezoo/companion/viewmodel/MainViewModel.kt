@@ -85,7 +85,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             animalDao.unlockAnimal(
                 animalId = animal.animalId,
                 code = normalized,
-                method = "CODE"
+                method = "CODE",
+                timestamp = System.currentTimeMillis()
             )
             val activated = animal.copy(isActivated = true)
             _activationResult.value = ActivationResult.Success(activated)
@@ -99,7 +100,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 animalDao.unlockAnimal(
                     animalId = animalId,
                     code = null,
-                    method = "COLLECTION"
+                    method = "COLLECTION",
+                    timestamp = System.currentTimeMillis()
                 )
             }
         }

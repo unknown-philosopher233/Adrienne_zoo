@@ -81,9 +81,9 @@ interface AnimalDao {
     @Transaction
     suspend fun unlockAnimal(
         animalId: String,
-        code: String? = null,
-        method: String = if (code != null) "CODE" else "COLLECTION",
-        timestamp: Long = System.currentTimeMillis()
+        code: String?,
+        method: String,
+        timestamp: Long
     ) {
         insertUnlock(
             UnlockedAnimalEntity(
@@ -108,7 +108,7 @@ interface AnimalDao {
     suspend fun reconcileAnimal(
         animal: AnimalEntity,
         codes: List<ActivationCodeEntity>,
-        segments: List<TimelineSegmentEntity> = emptyList()
+        segments: List<TimelineSegmentEntity>
     ) {
         val existing = getAnimalByIdSync(animal.animalId)
         val unlocked = isAnimalUnlocked(animal.animalId) || (existing?.isActivated == true)
@@ -140,7 +140,7 @@ interface AnimalDao {
         pack: PackEntity,
         animals: List<AnimalEntity>,
         codes: List<ActivationCodeEntity>,
-        segments: List<TimelineSegmentEntity> = emptyList()
+        segments: List<TimelineSegmentEntity>
     ) {
         insertPack(pack)
         for (animal in animals) {

@@ -6,7 +6,11 @@
   "scripts": {
     "fixture:create": "node create_fixture.cjs",
     "starters:extract": "node android_companion_app/extract_starters.cjs",
-    "map:build": "node android_companion_app/build_map_assets.cjs"
+    "map:build": "node android_companion_app/build_map_assets.cjs",
+    "pack:inspect": "python tools/wildpack_cli.py inspect-source data/tracks.json",
+    "pack:rights": "python tools/wildpack_cli.py verify-rights data/tracks.json",
+    "pack:build": "python tools/wildpack_cli.py build-pack tools/configs/starter_pack_1.json",
+    "pack:validate": "python tools/wildpack_cli.py validate-pack packs/starter-pack-1.wildpack"
   },
   "type": "module",
   "dependencies": {

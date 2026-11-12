@@ -90,6 +90,7 @@ fun ActivateAnimalScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Activate Animal", fontWeight = FontWeight.Bold, color = Color.White) },

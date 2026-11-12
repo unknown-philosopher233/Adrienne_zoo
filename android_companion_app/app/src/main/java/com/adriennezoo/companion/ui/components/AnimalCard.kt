@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.adriennezoo.companion.data.AnimalEntity
 import com.adriennezoo.companion.ui.theme.BorderColor
 import com.adriennezoo.companion.ui.theme.ForestGreenLight
+import androidx.core.graphics.toColorInt
 import com.adriennezoo.companion.ui.theme.ForestGreenPrimary
 import com.adriennezoo.companion.ui.theme.LinenCard
 import com.adriennezoo.companion.ui.theme.TextMuted
@@ -50,7 +51,7 @@ fun AnimalCard(
     modifier: Modifier = Modifier
 ) {
     val accentColor = try {
-        Color(android.graphics.Color.parseColor(animal.accent))
+        Color(animal.accent.toColorInt())
     } catch (_: Exception) {
         ForestGreenPrimary
     }

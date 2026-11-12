@@ -126,6 +126,13 @@ fun JourneyMapView(
                     }
 
                     webViewClient = object : WebViewClient() {
+                        override fun onRenderProcessGone(
+                            view: WebView?,
+                            detail: android.webkit.RenderProcessGoneDetail?
+                        ): Boolean {
+                            return true
+                        }
+
                         override fun shouldInterceptRequest(
                             view: WebView,
                             request: WebResourceRequest

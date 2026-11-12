@@ -90,6 +90,7 @@ fun ActivateAnimalScreen(
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = { Text("Activate Animal", fontWeight = FontWeight.Bold, color = Color.White) },
@@ -150,7 +151,7 @@ fun ActivateAnimalScreen(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Text(
-                                text = "Welcome to Adrienne Zoo!",
+                                text = "Welcome to ZooApp!",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary

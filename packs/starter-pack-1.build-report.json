@@ -1,0 +1,945 @@
+{
+  "pipelineVersion": "2.0.0",
+  "packSchemaVersion": 2,
+  "packId": "starter-pack-1",
+  "packVersion": 1,
+  "title": "Starter Pack 1",
+  "publishedAt": "2026-11-12T00:00:00Z",
+  "replayStartAt": "2026-11-12T00:00:00Z",
+  "sourceDataset": {
+    "path": "data/tracks.json",
+    "source": "Movebank (movebank.org) — public data API + Movebank Data Repository",
+    "fetchDate": "2026-06-27"
+  },
+  "outputPack": "starter-pack-1.wildpack",
+  "archiveBytes": 29007,
+  "archiveSha256": "b353ae26be4538ab6b4b2639423c4c885ce2cd25d4ae243e641a9a5fe54261c1",
+  "contentHash": "bb77938fc5a692259128d9a825735f0ddf148889be3337f23de2a82e0d6ae079",
+  "animalCount": 5,
+  "animals": [
+    {
+      "animalId": "blue_whale:2008CA-Bmu-00830",
+      "displayName": "Mara",
+      "studyId": "blue_whale",
+      "trackId": "2008CA-Bmu-00830",
+      "license": "CC0 1.0 Universal",
+      "doi": "10.5441/001/1.5ph88fk2",
+      "normalizationRules": {
+        "max_speed_kmh": 60.0,
+        "max_step_km": 1000.0,
+        "gap_threshold_hours": 48.0,
+        "sort_chronologically": false,
+        "allow_null_island": false,
+        "interval_start_utc": null,
+        "interval_end_utc": null
+      },
+      "cleaning": {
+        "raw_count": 130,
+        "valid_count": 127,
+        "invalid_coord_count": 0,
+        "invalid_timestamp_count": 0,
+        "duplicates_removed": 0,
+        "outliers_removed": 3,
+        "out_of_interval_removed": 0,
+        "outlier_details": [
+          {
+            "timestampUtc": "2008-08-06T00:21:10Z",
+            "lon": -95.11,
+            "lat": 32.849,
+            "stepKm": 2066.74,
+            "impliedSpeedKmh": 147.02
+          },
+          {
+            "timestampUtc": "2008-08-13T00:51:43Z",
+            "lon": -120.605,
+            "lat": 31.129,
+            "stepKm": 141.64,
+            "impliedSpeedKmh": 503.35
+          },
+          {
+            "timestampUtc": "2008-10-06T13:25:56Z",
+            "lon": 30.101,
+            "lat": 9.822,
+            "stepKm": 14129.05,
+            "impliedSpeedKmh": 866.44
+          }
+        ]
+      },
+      "movementSummary": {
+        "observation_count": 127,
+        "first_observation_utc": "2008-07-25T23:45:00Z",
+        "last_observation_utc": "2008-11-12T21:09:23Z",
+        "replay_duration_ms": 9494663000,
+        "duration_days": 109.89,
+        "distance_km": 8939.25,
+        "mean_speed_kmh": 3.39,
+        "median_interval_hours": 13.67,
+        "max_gap_hours": 106.71,
+        "gap_count": 8,
+        "bbox": [
+          -122.788,
+          23.62,
+          -112.226,
+          34.227
+        ]
+      },
+      "gaps": [
+        {
+          "start_utc": "2008-09-08T00:33:17Z",
+          "end_utc": "2008-09-11T10:32:21Z",
+          "start_offset_ms": 3804497000,
+          "end_offset_ms": 4099641000,
+          "duration_hours": 81.98
+        },
+        {
+          "start_utc": "2008-09-16T21:01:13Z",
+          "end_utc": "2008-09-20T21:57:28Z",
+          "start_offset_ms": 4569373000,
+          "end_offset_ms": 4918348000,
+          "duration_hours": 96.94
+        },
+        {
+          "start_utc": "2008-09-25T21:10:49Z",
+          "end_utc": "2008-09-29T00:28:41Z",
+          "start_offset_ms": 5347549000,
+          "end_offset_ms": 5618621000,
+          "duration_hours": 75.3
+        },
+        {
+          "start_utc": "2008-10-07T00:34:42Z",
+          "end_utc": "2008-10-09T10:42:22Z",
+          "start_offset_ms": 6310182000,
+          "end_offset_ms": 6519442000,
+          "duration_hours": 58.13
+        },
+        {
+          "start_utc": "2008-10-15T21:03:44Z",
+          "end_utc": "2008-10-19T10:35:33Z",
+          "start_offset_ms": 7075124000,
+          "end_offset_ms": 7383033000,
+          "duration_hours": 85.53
+        },
+        {
+          "start_utc": "2008-10-23T00:03:19Z",
+          "end_utc": "2008-10-25T00:09:46Z",
+          "start_offset_ms": 7690699000,
+          "end_offset_ms": 7863886000,
+          "duration_hours": 48.11
+        },
+        {
+          "start_utc": "2008-10-25T13:49:34Z",
+          "end_utc": "2008-10-29T00:16:47Z",
+          "start_offset_ms": 7913074000,
+          "end_offset_ms": 8209907000,
+          "duration_hours": 82.45
+        },
+        {
+          "start_utc": "2008-11-08T10:26:55Z",
+          "end_utc": "2008-11-12T21:09:23Z",
+          "start_offset_ms": 9110515000,
+          "end_offset_ms": 9494663000,
+          "duration_hours": 106.71
+        }
+      ]
+    },
+    {
+      "animalId": "seal:seal 2004025",
+      "displayName": "Harbor",
+      "studyId": "seal",
+      "trackId": "seal 2004025",
+      "license": "CC0 1.0 Universal",
+      "doi": "10.5441/001/1.hm5nk220",
+      "normalizationRules": {
+        "max_speed_kmh": 40.0,
+        "max_step_km": 1000.0,
+        "gap_threshold_hours": 48.0,
+        "sort_chronologically": false,
+        "allow_null_island": false,
+        "interval_start_utc": null,
+        "interval_end_utc": null
+      },
+      "cleaning": {
+        "raw_count": 130,
+        "valid_count": 130,
+        "invalid_coord_count": 0,
+        "invalid_timestamp_count": 0,
+        "duplicates_removed": 0,
+        "outliers_removed": 0,
+        "out_of_interval_removed": 0,
+        "outlier_details": []
+      },
+      "movementSummary": {
+        "observation_count": 130,
+        "first_observation_utc": "2004-06-09T12:30:00Z",
+        "last_observation_utc": "2005-01-18T17:30:00Z",
+        "replay_duration_ms": 19285200000,
+        "duration_days": 223.21,
+        "distance_km": 10920.74,
+        "mean_speed_kmh": 2.04,
+        "median_interval_hours": 42.0,
+        "max_gap_hours": 42.0,
+        "gap_count": 0,
+        "bbox": [
+          -155.5204,
+          37.1164,
+          -122.3308,
+          59.5279
+        ]
+      },
+      "gaps": []
+    },
+    {
+      "animalId": "green_turtle:52189",
+      "displayName": "Nalu",
+      "studyId": "green_turtle",
+      "trackId": "52189",
+      "license": "CC0 1.0 Universal",
+      "doi": "10.5441/001/1.313",
+      "normalizationRules": {
+        "max_speed_kmh": 25.0,
+        "max_step_km": 1000.0,
+        "gap_threshold_hours": 48.0,
+        "sort_chronologically": false,
+        "allow_null_island": false,
+        "interval_start_utc": null,
+        "interval_end_utc": null
+      },
+      "cleaning": {
+        "raw_count": 130,
+        "valid_count": 130,
+        "invalid_coord_count": 0,
+        "invalid_timestamp_count": 0,
+        "duplicates_removed": 0,
+        "outliers_removed": 0,
+        "out_of_interval_removed": 0,
+        "outlier_details": []
+      },
+      "movementSummary": {
+        "observation_count": 130,
+        "first_observation_utc": "2018-07-08T00:15:25Z",
+        "last_observation_utc": "2019-02-14T20:06:00Z",
+        "replay_duration_ms": 19165835000,
+        "duration_days": 221.83,
+        "distance_km": 4948.11,
+        "mean_speed_kmh": 0.93,
+        "median_interval_hours": 34.29,
+        "max_gap_hours": 220.66,
+        "gap_count": 38,
+        "bbox": [
+          34.9717,
+          -21.6031,
+          72.4716,
+          -7.0998
+        ]
+      },
+      "gaps": [
+        {
+          "start_utc": "2018-07-12T12:24:42Z",
+          "end_utc": "2018-07-15T03:33:17Z",
+          "start_offset_ms": 389357000,
+          "end_offset_ms": 616672000,
+          "duration_hours": 63.14
+        },
+        {
+          "start_utc": "2018-07-17T23:32:59Z",
+          "end_utc": "2018-07-20T17:22:00Z",
+          "start_offset_ms": 861454000,
+          "end_offset_ms": 1098395000,
+          "duration_hours": 65.82
+        },
+        {
+          "start_utc": "2018-07-20T17:22:00Z",
+          "end_utc": "2018-07-23T12:34:41Z",
+          "start_offset_ms": 1098395000,
+          "end_offset_ms": 1340356000,
+          "duration_hours": 67.21
+        },
+        {
+          "start_utc": "2018-07-24T19:59:10Z",
+          "end_utc": "2018-07-26T22:26:32Z",
+          "start_offset_ms": 1453425000,
+          "end_offset_ms": 1635067000,
+          "duration_hours": 50.46
+        },
+        {
+          "start_utc": "2018-08-05T02:30:52Z",
+          "end_utc": "2018-08-07T15:49:08Z",
+          "start_offset_ms": 2427327000,
+          "end_offset_ms": 2648023000,
+          "duration_hours": 61.3
+        },
+        {
+          "start_utc": "2018-08-11T03:00:05Z",
+          "end_utc": "2018-08-13T16:38:49Z",
+          "start_offset_ms": 2947480000,
+          "end_offset_ms": 3169404000,
+          "duration_hours": 61.65
+        },
+        {
+          "start_utc": "2018-08-19T13:44:55Z",
+          "end_utc": "2018-08-21T19:48:49Z",
+          "start_offset_ms": 3677370000,
+          "end_offset_ms": 3872004000,
+          "duration_hours": 54.06
+        },
+        {
+          "start_utc": "2018-08-26T07:21:47Z",
+          "end_utc": "2018-08-28T20:36:04Z",
+          "start_offset_ms": 4259182000,
+          "end_offset_ms": 4479639000,
+          "duration_hours": 61.24
+        },
+        {
+          "start_utc": "2018-09-09T06:49:11Z",
+          "end_utc": "2018-09-12T11:49:42Z",
+          "start_offset_ms": 5466826000,
+          "end_offset_ms": 5744057000,
+          "duration_hours": 77.01
+        },
+        {
+          "start_utc": "2018-09-17T00:57:14Z",
+          "end_utc": "2018-09-19T23:25:30Z",
+          "start_offset_ms": 6136909000,
+          "end_offset_ms": 6390605000,
+          "duration_hours": 70.47
+        },
+        {
+          "start_utc": "2018-09-23T11:55:04Z",
+          "end_utc": "2018-09-26T00:35:11Z",
+          "start_offset_ms": 6694779000,
+          "end_offset_ms": 6913186000,
+          "duration_hours": 60.67
+        },
+        {
+          "start_utc": "2018-09-29T23:20:37Z",
+          "end_utc": "2018-10-02T01:30:52Z",
+          "start_offset_ms": 7254312000,
+          "end_offset_ms": 7434927000,
+          "duration_hours": 50.17
+        },
+        {
+          "start_utc": "2018-10-03T04:20:00Z",
+          "end_utc": "2018-10-05T17:09:14Z",
+          "start_offset_ms": 7531475000,
+          "end_offset_ms": 7750429000,
+          "duration_hours": 60.82
+        },
+        {
+          "start_utc": "2018-10-08T15:43:25Z",
+          "end_utc": "2018-10-11T02:55:40Z",
+          "start_offset_ms": 8004480000,
+          "end_offset_ms": 8217615000,
+          "duration_hours": 59.2
+        },
+        {
+          "start_utc": "2018-10-11T02:55:40Z",
+          "end_utc": "2018-10-13T09:57:16Z",
+          "start_offset_ms": 8217615000,
+          "end_offset_ms": 8415711000,
+          "duration_hours": 55.03
+        },
+        {
+          "start_utc": "2018-10-14T14:20:21Z",
+          "end_utc": "2018-10-16T17:22:35Z",
+          "start_offset_ms": 8517896000,
+          "end_offset_ms": 8701630000,
+          "duration_hours": 51.04
+        },
+        {
+          "start_utc": "2018-10-19T15:13:59Z",
+          "end_utc": "2018-10-21T22:33:17Z",
+          "start_offset_ms": 8953114000,
+          "end_offset_ms": 9152272000,
+          "duration_hours": 55.32
+        },
+        {
+          "start_utc": "2018-10-25T09:45:03Z",
+          "end_utc": "2018-10-28T12:36:09Z",
+          "start_offset_ms": 9451778000,
+          "end_offset_ms": 9721244000,
+          "duration_hours": 74.85
+        },
+        {
+          "start_utc": "2018-10-30T04:33:11Z",
+          "end_utc": "2018-11-01T06:57:32Z",
+          "start_offset_ms": 9865066000,
+          "end_offset_ms": 10046527000,
+          "duration_hours": 50.41
+        },
+        {
+          "start_utc": "2018-11-01T06:57:32Z",
+          "end_utc": "2018-11-03T15:11:45Z",
+          "start_offset_ms": 10046527000,
+          "end_offset_ms": 10248980000,
+          "duration_hours": 56.24
+        },
+        {
+          "start_utc": "2018-11-06T23:56:53Z",
+          "end_utc": "2018-11-09T02:40:11Z",
+          "start_offset_ms": 10539688000,
+          "end_offset_ms": 10722286000,
+          "duration_hours": 50.72
+        },
+        {
+          "start_utc": "2018-11-09T02:40:11Z",
+          "end_utc": "2018-11-11T09:34:09Z",
+          "start_offset_ms": 10722286000,
+          "end_offset_ms": 10919924000,
+          "duration_hours": 54.9
+        },
+        {
+          "start_utc": "2018-11-11T09:34:09Z",
+          "end_utc": "2018-11-13T21:44:55Z",
+          "start_offset_ms": 10919924000,
+          "end_offset_ms": 11136570000,
+          "duration_hours": 60.18
+        },
+        {
+          "start_utc": "2018-11-13T21:44:55Z",
+          "end_utc": "2018-11-15T22:35:59Z",
+          "start_offset_ms": 11136570000,
+          "end_offset_ms": 11312434000,
+          "duration_hours": 48.85
+        },
+        {
+          "start_utc": "2018-11-17T07:10:48Z",
+          "end_utc": "2018-11-19T09:00:45Z",
+          "start_offset_ms": 11429723000,
+          "end_offset_ms": 11609120000,
+          "duration_hours": 49.83
+        },
+        {
+          "start_utc": "2018-11-24T19:31:51Z",
+          "end_utc": "2018-11-27T17:33:57Z",
+          "start_offset_ms": 12078986000,
+          "end_offset_ms": 12331112000,
+          "duration_hours": 70.03
+        },
+        {
+          "start_utc": "2018-11-27T17:33:57Z",
+          "end_utc": "2018-11-30T19:48:14Z",
+          "start_offset_ms": 12331112000,
+          "end_offset_ms": 12598369000,
+          "duration_hours": 74.24
+        },
+        {
+          "start_utc": "2018-12-11T20:44:20Z",
+          "end_utc": "2018-12-14T05:29:28Z",
+          "start_offset_ms": 13552135000,
+          "end_offset_ms": 13756443000,
+          "duration_hours": 56.75
+        },
+        {
+          "start_utc": "2018-12-14T05:29:28Z",
+          "end_utc": "2018-12-17T17:55:40Z",
+          "start_offset_ms": 13756443000,
+          "end_offset_ms": 14060415000,
+          "duration_hours": 84.44
+        },
+        {
+          "start_utc": "2018-12-17T17:55:40Z",
+          "end_utc": "2018-12-26T22:35:27Z",
+          "start_offset_ms": 14060415000,
+          "end_offset_ms": 14854802000,
+          "duration_hours": 220.66
+        },
+        {
+          "start_utc": "2018-12-27T17:33:06Z",
+          "end_utc": "2018-12-29T21:20:33Z",
+          "start_offset_ms": 14923061000,
+          "end_offset_ms": 15109508000,
+          "duration_hours": 51.79
+        },
+        {
+          "start_utc": "2019-01-05T06:32:09Z",
+          "end_utc": "2019-01-07T19:25:08Z",
+          "start_offset_ms": 15661004000,
+          "end_offset_ms": 15880183000,
+          "duration_hours": 60.88
+        },
+        {
+          "start_utc": "2019-01-07T19:25:08Z",
+          "end_utc": "2019-01-13T07:07:30Z",
+          "start_offset_ms": 15880183000,
+          "end_offset_ms": 16354325000,
+          "duration_hours": 131.71
+        },
+        {
+          "start_utc": "2019-01-19T19:01:05Z",
+          "end_utc": "2019-01-22T12:16:17Z",
+          "start_offset_ms": 16915540000,
+          "end_offset_ms": 17150452000,
+          "duration_hours": 65.25
+        },
+        {
+          "start_utc": "2019-01-28T03:04:38Z",
+          "end_utc": "2019-01-30T08:12:11Z",
+          "start_offset_ms": 17635753000,
+          "end_offset_ms": 17827006000,
+          "duration_hours": 53.13
+        },
+        {
+          "start_utc": "2019-02-01T21:11:18Z",
+          "end_utc": "2019-02-04T13:29:59Z",
+          "start_offset_ms": 18046553000,
+          "end_offset_ms": 18278074000,
+          "duration_hours": 64.31
+        },
+        {
+          "start_utc": "2019-02-04T13:29:59Z",
+          "end_utc": "2019-02-07T00:44:56Z",
+          "start_offset_ms": 18278074000,
+          "end_offset_ms": 18491371000,
+          "duration_hours": 59.25
+        },
+        {
+          "start_utc": "2019-02-07T00:44:56Z",
+          "end_utc": "2019-02-14T20:06:00Z",
+          "start_offset_ms": 18491371000,
+          "end_offset_ms": 19165835000,
+          "duration_hours": 187.35
+        }
+      ]
+    },
+    {
+      "animalId": "albatross:1163-1163",
+      "displayName": "Sol",
+      "studyId": "albatross",
+      "trackId": "1163-1163",
+      "license": "CC0 1.0 Universal",
+      "doi": "10.5441/001/1.3hp3s250",
+      "normalizationRules": {
+        "max_speed_kmh": 140.0,
+        "max_step_km": 1000.0,
+        "gap_threshold_hours": 48.0,
+        "sort_chronologically": false,
+        "allow_null_island": false,
+        "interval_start_utc": null,
+        "interval_end_utc": null
+      },
+      "cleaning": {
+        "raw_count": 130,
+        "valid_count": 130,
+        "invalid_coord_count": 0,
+        "invalid_timestamp_count": 0,
+        "duplicates_removed": 0,
+        "outliers_removed": 0,
+        "out_of_interval_removed": 0,
+        "outlier_details": []
+      },
+      "movementSummary": {
+        "observation_count": 130,
+        "first_observation_utc": "2008-06-23T17:58:01.998Z",
+        "last_observation_utc": "2008-09-28T13:31:13.999Z",
+        "replay_duration_ms": 8364792001,
+        "duration_days": 96.81,
+        "distance_km": 11461.46,
+        "mean_speed_kmh": 4.93,
+        "median_interval_hours": 18.0,
+        "max_gap_hours": 50.99,
+        "gap_count": 1,
+        "bbox": [
+          -90.2449,
+          -7.6312,
+          -79.6634,
+          0.1694
+        ]
+      },
+      "gaps": [
+        {
+          "start_utc": "2008-07-03T04:31:14.001Z",
+          "end_utc": "2008-07-05T07:30:44.998Z",
+          "start_offset_ms": 815592003,
+          "end_offset_ms": 999163000,
+          "duration_hours": 50.99
+        }
+      ]
+    },
+    {
+      "animalId": "godwit:Bordeaux",
+      "displayName": "Bordeaux",
+      "studyId": "godwit",
+      "trackId": "Bordeaux",
+      "license": "CC0 1.0 Universal",
+      "doi": "10.5441/001/1.m3b75054",
+      "normalizationRules": {
+        "max_speed_kmh": 120.0,
+        "max_step_km": 1000.0,
+        "gap_threshold_hours": 48.0,
+        "sort_chronologically": false,
+        "allow_null_island": false,
+        "interval_start_utc": null,
+        "interval_end_utc": null
+      },
+      "cleaning": {
+        "raw_count": 130,
+        "valid_count": 130,
+        "invalid_coord_count": 0,
+        "invalid_timestamp_count": 0,
+        "duplicates_removed": 0,
+        "outliers_removed": 0,
+        "out_of_interval_removed": 0,
+        "outlier_details": []
+      },
+      "movementSummary": {
+        "observation_count": 130,
+        "first_observation_utc": "2013-02-06T02:42:39Z",
+        "last_observation_utc": "2013-05-30T08:44:35Z",
+        "replay_duration_ms": 9784916000,
+        "duration_days": 113.25,
+        "distance_km": 1918.73,
+        "mean_speed_kmh": 0.71,
+        "median_interval_hours": 4.76,
+        "max_gap_hours": 58.01,
+        "gap_count": 47,
+        "bbox": [
+          -6.004,
+          38.979,
+          4.78,
+          52.02
+        ]
+      },
+      "gaps": [
+        {
+          "start_utc": "2013-02-06T09:45:06Z",
+          "end_utc": "2013-02-08T11:10:00Z",
+          "start_offset_ms": 25347000,
+          "end_offset_ms": 203241000,
+          "duration_hours": 49.41
+        },
+        {
+          "start_utc": "2013-02-08T20:22:06Z",
+          "end_utc": "2013-02-10T22:12:05Z",
+          "start_offset_ms": 236367000,
+          "end_offset_ms": 415766000,
+          "duration_hours": 49.83
+        },
+        {
+          "start_utc": "2013-02-11T05:09:18Z",
+          "end_utc": "2013-02-13T08:58:22Z",
+          "start_offset_ms": 440799000,
+          "end_offset_ms": 627343000,
+          "duration_hours": 51.82
+        },
+        {
+          "start_utc": "2013-02-13T15:40:38Z",
+          "end_utc": "2013-02-15T20:00:52Z",
+          "start_offset_ms": 651479000,
+          "end_offset_ms": 839893000,
+          "duration_hours": 52.34
+        },
+        {
+          "start_utc": "2013-02-15T20:00:52Z",
+          "end_utc": "2013-02-18T02:14:13Z",
+          "start_offset_ms": 839893000,
+          "end_offset_ms": 1035094000,
+          "duration_hours": 54.22
+        },
+        {
+          "start_utc": "2013-02-18T10:37:10Z",
+          "end_utc": "2013-02-20T15:01:34Z",
+          "start_offset_ms": 1065271000,
+          "end_offset_ms": 1253935000,
+          "duration_hours": 52.41
+        },
+        {
+          "start_utc": "2013-02-20T19:46:56Z",
+          "end_utc": "2013-02-22T22:13:57Z",
+          "start_offset_ms": 1271057000,
+          "end_offset_ms": 1452678000,
+          "duration_hours": 50.45
+        },
+        {
+          "start_utc": "2013-02-23T05:18:12Z",
+          "end_utc": "2013-02-25T09:51:52Z",
+          "start_offset_ms": 1478133000,
+          "end_offset_ms": 1667353000,
+          "duration_hours": 52.56
+        },
+        {
+          "start_utc": "2013-02-25T14:05:39Z",
+          "end_utc": "2013-02-27T16:39:32Z",
+          "start_offset_ms": 1682580000,
+          "end_offset_ms": 1864613000,
+          "duration_hours": 50.56
+        },
+        {
+          "start_utc": "2013-02-27T20:23:17Z",
+          "end_utc": "2013-03-02T03:26:15Z",
+          "start_offset_ms": 1878038000,
+          "end_offset_ms": 2076216000,
+          "duration_hours": 55.05
+        },
+        {
+          "start_utc": "2013-03-02T09:48:18Z",
+          "end_utc": "2013-03-04T12:23:38Z",
+          "start_offset_ms": 2099139000,
+          "end_offset_ms": 2281259000,
+          "duration_hours": 50.59
+        },
+        {
+          "start_utc": "2013-03-04T16:15:59Z",
+          "end_utc": "2013-03-06T20:38:10Z",
+          "start_offset_ms": 2295200000,
+          "end_offset_ms": 2483731000,
+          "duration_hours": 52.37
+        },
+        {
+          "start_utc": "2013-03-07T04:10:11Z",
+          "end_utc": "2013-03-09T06:17:36Z",
+          "start_offset_ms": 2510852000,
+          "end_offset_ms": 2691297000,
+          "duration_hours": 50.12
+        },
+        {
+          "start_utc": "2013-03-09T15:55:19Z",
+          "end_utc": "2013-03-11T18:53:40Z",
+          "start_offset_ms": 2725960000,
+          "end_offset_ms": 2909461000,
+          "duration_hours": 50.97
+        },
+        {
+          "start_utc": "2013-03-11T21:19:58Z",
+          "end_utc": "2013-03-14T05:55:14Z",
+          "start_offset_ms": 2918239000,
+          "end_offset_ms": 3121955000,
+          "duration_hours": 56.59
+        },
+        {
+          "start_utc": "2013-03-14T10:40:43Z",
+          "end_utc": "2013-03-16T14:02:46Z",
+          "start_offset_ms": 3139084000,
+          "end_offset_ms": 3324007000,
+          "duration_hours": 51.37
+        },
+        {
+          "start_utc": "2013-03-16T18:33:51Z",
+          "end_utc": "2013-03-18T22:16:31Z",
+          "start_offset_ms": 3340272000,
+          "end_offset_ms": 3526432000,
+          "duration_hours": 51.71
+        },
+        {
+          "start_utc": "2013-03-19T05:25:53Z",
+          "end_utc": "2013-03-21T08:31:16Z",
+          "start_offset_ms": 3552194000,
+          "end_offset_ms": 3736117000,
+          "duration_hours": 51.09
+        },
+        {
+          "start_utc": "2013-03-21T14:53:59Z",
+          "end_utc": "2013-03-23T16:56:04Z",
+          "start_offset_ms": 3759080000,
+          "end_offset_ms": 3939205000,
+          "duration_hours": 50.03
+        },
+        {
+          "start_utc": "2013-03-23T22:19:57Z",
+          "end_utc": "2013-03-26T04:07:28Z",
+          "start_offset_ms": 3958638000,
+          "end_offset_ms": 4152289000,
+          "duration_hours": 53.79
+        },
+        {
+          "start_utc": "2013-03-26T10:08:59Z",
+          "end_utc": "2013-03-28T13:36:53Z",
+          "start_offset_ms": 4173980000,
+          "end_offset_ms": 4359254000,
+          "duration_hours": 51.47
+        },
+        {
+          "start_utc": "2013-03-28T17:12:01Z",
+          "end_utc": "2013-03-31T03:12:46Z",
+          "start_offset_ms": 4372162000,
+          "end_offset_ms": 4581007000,
+          "duration_hours": 58.01
+        },
+        {
+          "start_utc": "2013-03-31T04:53:45Z",
+          "end_utc": "2013-04-02T07:07:59Z",
+          "start_offset_ms": 4587066000,
+          "end_offset_ms": 4767920000,
+          "duration_hours": 50.24
+        },
+        {
+          "start_utc": "2013-04-02T14:22:11Z",
+          "end_utc": "2013-04-04T17:45:01Z",
+          "start_offset_ms": 4793972000,
+          "end_offset_ms": 4978942000,
+          "duration_hours": 51.38
+        },
+        {
+          "start_utc": "2013-04-05T00:36:38Z",
+          "end_utc": "2013-04-07T03:42:29Z",
+          "start_offset_ms": 5003639000,
+          "end_offset_ms": 5187590000,
+          "duration_hours": 51.1
+        },
+        {
+          "start_utc": "2013-04-07T08:56:49Z",
+          "end_utc": "2013-04-09T09:59:25Z",
+          "start_offset_ms": 5206450000,
+          "end_offset_ms": 5383006000,
+          "duration_hours": 49.04
+        },
+        {
+          "start_utc": "2013-04-09T16:39:43Z",
+          "end_utc": "2013-04-11T20:05:08Z",
+          "start_offset_ms": 5407024000,
+          "end_offset_ms": 5592149000,
+          "duration_hours": 51.42
+        },
+        {
+          "start_utc": "2013-04-12T02:42:16Z",
+          "end_utc": "2013-04-14T09:38:13Z",
+          "start_offset_ms": 5615977000,
+          "end_offset_ms": 5813734000,
+          "duration_hours": 54.93
+        },
+        {
+          "start_utc": "2013-04-14T12:11:54Z",
+          "end_utc": "2013-04-16T15:30:34Z",
+          "start_offset_ms": 5822955000,
+          "end_offset_ms": 6007675000,
+          "duration_hours": 51.31
+        },
+        {
+          "start_utc": "2013-04-16T22:24:42Z",
+          "end_utc": "2013-04-19T03:02:59Z",
+          "start_offset_ms": 6032523000,
+          "end_offset_ms": 6222020000,
+          "duration_hours": 52.64
+        },
+        {
+          "start_utc": "2013-04-19T08:39:55Z",
+          "end_utc": "2013-04-21T11:32:36Z",
+          "start_offset_ms": 6242236000,
+          "end_offset_ms": 6425397000,
+          "duration_hours": 50.88
+        },
+        {
+          "start_utc": "2013-04-21T18:59:34Z",
+          "end_utc": "2013-04-24T00:35:35Z",
+          "start_offset_ms": 6452215000,
+          "end_offset_ms": 6645176000,
+          "duration_hours": 53.6
+        },
+        {
+          "start_utc": "2013-04-24T03:47:36Z",
+          "end_utc": "2013-04-26T06:41:28Z",
+          "start_offset_ms": 6656697000,
+          "end_offset_ms": 6839929000,
+          "duration_hours": 50.9
+        },
+        {
+          "start_utc": "2013-04-26T13:26:03Z",
+          "end_utc": "2013-04-28T17:19:08Z",
+          "start_offset_ms": 6864204000,
+          "end_offset_ms": 7050989000,
+          "duration_hours": 51.88
+        },
+        {
+          "start_utc": "2013-04-28T21:34:08Z",
+          "end_utc": "2013-05-01T04:11:28Z",
+          "start_offset_ms": 7066289000,
+          "end_offset_ms": 7262929000,
+          "duration_hours": 54.62
+        },
+        {
+          "start_utc": "2013-05-01T09:58:22Z",
+          "end_utc": "2013-05-03T12:30:35Z",
+          "start_offset_ms": 7283743000,
+          "end_offset_ms": 7465676000,
+          "duration_hours": 50.54
+        },
+        {
+          "start_utc": "2013-05-03T20:43:20Z",
+          "end_utc": "2013-05-06T03:27:00Z",
+          "start_offset_ms": 7495241000,
+          "end_offset_ms": 7692261000,
+          "duration_hours": 54.73
+        },
+        {
+          "start_utc": "2013-05-06T05:12:52Z",
+          "end_utc": "2013-05-08T09:49:15Z",
+          "start_offset_ms": 7698613000,
+          "end_offset_ms": 7887996000,
+          "duration_hours": 52.61
+        },
+        {
+          "start_utc": "2013-05-08T14:37:37Z",
+          "end_utc": "2013-05-10T19:17:31Z",
+          "start_offset_ms": 7905298000,
+          "end_offset_ms": 8094892000,
+          "duration_hours": 52.66
+        },
+        {
+          "start_utc": "2013-05-11T02:19:52Z",
+          "end_utc": "2013-05-13T03:52:34Z",
+          "start_offset_ms": 8120233000,
+          "end_offset_ms": 8298595000,
+          "duration_hours": 49.55
+        },
+        {
+          "start_utc": "2013-05-13T12:09:30Z",
+          "end_utc": "2013-05-15T15:22:45Z",
+          "start_offset_ms": 8328411000,
+          "end_offset_ms": 8512806000,
+          "duration_hours": 51.22
+        },
+        {
+          "start_utc": "2013-05-15T21:32:38Z",
+          "end_utc": "2013-05-18T01:14:12Z",
+          "start_offset_ms": 8534999000,
+          "end_offset_ms": 8721093000,
+          "duration_hours": 51.69
+        },
+        {
+          "start_utc": "2013-05-18T06:05:16Z",
+          "end_utc": "2013-05-20T10:46:09Z",
+          "start_offset_ms": 8738557000,
+          "end_offset_ms": 8928210000,
+          "duration_hours": 52.68
+        },
+        {
+          "start_utc": "2013-05-20T16:43:29Z",
+          "end_utc": "2013-05-22T19:52:14Z",
+          "start_offset_ms": 8949650000,
+          "end_offset_ms": 9133775000,
+          "duration_hours": 51.15
+        },
+        {
+          "start_utc": "2013-05-23T01:47:16Z",
+          "end_utc": "2013-05-25T03:23:36Z",
+          "start_offset_ms": 9155077000,
+          "end_offset_ms": 9333657000,
+          "duration_hours": 49.61
+        },
+        {
+          "start_utc": "2013-05-25T11:31:55Z",
+          "end_utc": "2013-05-27T14:11:41Z",
+          "start_offset_ms": 9362956000,
+          "end_offset_ms": 9545342000,
+          "duration_hours": 50.66
+        },
+        {
+          "start_utc": "2013-05-27T20:54:16Z",
+          "end_utc": "2013-05-30T02:29:34Z",
+          "start_offset_ms": 9569497000,
+          "end_offset_ms": 9762415000,
+          "duration_hours": 53.59
+        }
+      ]
+    }
+  ],
+  "excludedSourceStudies": [
+    {
+      "studyId": "eagle",
+      "species": "Bald Eagle",
+      "license": "Attribution-NonCommercial 4.0 International",
+      "reasons": [
+        "Restricted license 'Attribution-NonCommercial 4.0 International' is not eligible for unrestricted open-source redistribution."
+      ]
+    }
+  ]
+}

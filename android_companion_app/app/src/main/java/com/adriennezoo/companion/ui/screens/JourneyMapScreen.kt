@@ -42,6 +42,7 @@ fun JourneyMapScreen(
     val animal by animalFlow.collectAsState(initial = null)
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             TopAppBar(
                 title = {

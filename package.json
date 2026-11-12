@@ -1,16 +1,22 @@
 {
-  "name": "field-notes-publisher",
-  "version": "0.1.0",
+  "name": "adrienne-zoo-tools",
+  "version": "1.0.0",
   "private": true,
-  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
+  "description": "Content generation and fixture utilities for Adrienne Zoo Android application",
+  "scripts": {
+    "fixture:create": "node create_fixture.cjs",
+    "starters:extract": "node android_companion_app/extract_starters.cjs",
+    "map:build": "node android_companion_app/build_map_assets.cjs",
+    "pack:inspect": "python tools/wildpack_cli.py inspect-source data/tracks.json",
+    "pack:rights": "python tools/wildpack_cli.py verify-rights data/tracks.json",
+    "pack:build": "python tools/wildpack_cli.py build-pack tools/configs/starter_pack_1.json",
+    "pack:validate": "python tools/wildpack_cli.py validate-pack packs/starter-pack-1.wildpack"
+  },
   "type": "module",
   "dependencies": {
     "d3-geo": "^3.1.1",
     "jszip": "^3.10.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "topojson-client": "^3.1.0",
     "world-atlas": "^2.0.2"
-  },
-  "devDependencies": { "@vitejs/plugin-react": "^4.3.4", "vite": "^6.0.7" }
+  }
 }

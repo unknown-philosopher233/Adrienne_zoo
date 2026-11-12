@@ -1,0 +1,76 @@
+{
+  "packId": "starter-pack-1",
+  "packVersion": 1,
+  "title": "Starter Pack 1",
+  "publishedAt": "2026-11-12T00:00:00Z",
+  "replayStartAt": "2026-11-12T00:00:00Z",
+  "sourcePath": "data/tracks.json",
+  "outputPack": "packs/starter-pack-1.wildpack",
+  "defaultNormalization": {
+    "maxStepKm": 1000.0,
+    "gapThresholdHours": 48.0,
+    "sortChronologically": false
+  },
+  "animals": [
+    {
+      "studyId": "blue_whale",
+      "trackId": "2008CA-Bmu-00830",
+      "slug": "mara-blue-whale",
+      "displayName": "Mara",
+      "description": "A real blue whale migration track recorded across the eastern North Pacific.",
+      "intro": "Hello, I'm Mara! Follow my real recorded journey off the coast of California and Baja.",
+      "accent": "#2f5d6e",
+      "normalization": {
+        "maxSpeedKmh": 60.0
+      }
+    },
+    {
+      "studyId": "seal",
+      "trackId": "seal 2004025",
+      "slug": "harbor-sea-lion",
+      "displayName": "Harbor",
+      "description": "A real California sea lion track recorded along the California Current.",
+      "intro": "Hello, I'm Harbor! Follow my real recorded coastal foraging trips in the Northeast Pacific.",
+      "accent": "#6b7a3a",
+      "normalization": {
+        "maxSpeedKmh": 40.0
+      }
+    },
+    {
+      "studyId": "green_turtle",
+      "trackId": "52189",
+      "slug": "nalu-green-turtle",
+      "displayName": "Nalu",
+      "description": "A real green sea turtle track recorded across the Chagos Archipelago in the Indian Ocean.",
+      "intro": "Hello, I'm Nalu! Follow my real recorded ocean crossing across the western Indian Ocean.",
+      "accent": "#3f7d6e",
+      "normalization": {
+        "maxSpeedKmh": 25.0
+      }
+    },
+    {
+      "studyId": "albatross",
+      "trackId": "1163-1163",
+      "slug": "sol-waved-albatross",
+      "displayName": "Sol",
+      "description": "A real waved albatross track recorded between the Galápagos Islands and the Peruvian coast.",
+      "intro": "Hello, I'm Sol! Follow my real recorded flights over the eastern tropical Pacific.",
+      "accent": "#5a8f63",
+      "normalization": {
+        "maxSpeedKmh": 140.0
+      }
+    },
+    {
+      "studyId": "godwit",
+      "trackId": "Bordeaux",
+      "slug": "bordeaux-black-tailed-godwit",
+      "displayName": "Bordeaux",
+      "description": "A real black-tailed godwit spring migration track along the East Atlantic flyway.",
+      "intro": "Hello, I'm Bordeaux! Follow my real recorded seasonal journey from Iberia to northern Europe.",
+      "accent": "#a6643c",
+      "normalization": {
+        "maxSpeedKmh": 120.0
+      }
+    }
+  ]
+}

@@ -118,11 +118,6 @@
         1217931464000
       ],
       [
-        -95.11,
-        32.849,
-        1217982070000
-      ],
-      [
         -116.688,
         31.33,
         1218017210000
@@ -161,11 +156,6 @@
         -119.368,
         31.843,
         1218587690000
-      ],
-      [
-        -120.605,
-        31.129,
-        1218588703000
       ],
       [
         -119.693,
@@ -528,11 +518,6 @@
         1223240851000
       ],
       [
-        30.101,
-        9.822,
-        1223299556000
-      ],
-      [
         -116.774,
         31.89,
         1223339682000
@@ -670,8 +655,8 @@
     ],
     "firstObservation": "2008-07-25T23:45:00.000Z",
     "lastObservation": "2008-11-12T21:09:23.000Z",
-    "observationCount": 230,
-    "distanceKm": 48723
+    "observationCount": 127,
+    "distanceKm": 8939
   },
   {
     "animalId": "green_turtle:52189",
@@ -1344,8 +1329,8 @@
     ],
     "firstObservation": "2018-07-08T00:15:25.000Z",
     "lastObservation": "2019-02-14T20:06:00.000Z",
-    "observationCount": 1673,
-    "distanceKm": 5481
+    "observationCount": 130,
+    "distanceKm": 4948
   },
   {
     "animalId": "caribou:KE_car004",
@@ -2677,8 +2662,8 @@
     ],
     "firstObservation": "2004-06-09T12:30:00.000Z",
     "lastObservation": "2005-01-18T17:30:00.000Z",
-    "observationCount": 5358,
-    "distanceKm": 11560
+    "observationCount": 130,
+    "distanceKm": 10921
   },
   {
     "animalId": "albatross:1163-1163",
@@ -3351,7 +3336,7 @@
     ],
     "firstObservation": "2008-06-23T17:58:01.998Z",
     "lastObservation": "2008-09-28T13:31:13.999Z",
-    "observationCount": 1503,
-    "distanceKm": 15491
+    "observationCount": 130,
+    "distanceKm": 11461
   }
 ]

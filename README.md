@@ -1,23 +1,58 @@
-# Field Notes Publisher
+# Adrienne Zoo — Wildlife Companion (Android)
 
-Windows-oriented publisher for preparing offline wildlife packs. It uses five real individual tracks from the MIT-licensed Migration Watch visualization dataset and preserves the source study, license, timestamps, and coordinates.
+Adrienne Zoo is an offline-first native Android companion app for discovering and following real tracked wildlife. Users follow authentic animal migration journeys using real GPS and satellite telemetry from open wildlife research datasets (Movebank / Migration Watch).
 
-## Run
+## Architecture & Features
 
-```powershell
-npm install
-npm run dev
+- **Native Android UI**: Built with Jetpack Compose, Material 3, and Kotlin Coroutines/Flow.
+- **Offline Mapping Engine**: High-performance interactive projection maps powered by offline D3 and Natural Earth TopoJSON vector geometries rendered in an isolated local WebView.
+- **Local Persistence & Data Safety**: Android Room database with explicit, non-destructive schema migrations. User unlock states and activated animal collections are strictly decoupled from catalog metadata updates and cannot be revoked by re-imports.
+- **Wildlife Pack Support (`.wildpack` v1)**: Self-contained ZIP containers for modular offline distribution of research tracks, animal profiles, activation codes, and scientific attribution.
+- **100% Offline Capability**: Zero runtime network dependencies, zero analytics, zero external tile servers. All starter animals and base geometries are bundled inside the APK.
+
+## Project Structure
+
+```
+Adrienne_zoo/
+├── android_companion_app/        # Primary Android Studio project
+│   ├── app/                      # Main application module
+│   │   ├── src/main/assets/      # Bundled map, starters catalog, vector land data
+│   │   └── src/main/java/        # Compose UI, Room DB, ViewModels, Importer
+│   ├── build_map_assets.cjs      # Bundles offline map HTML/CSS/JS/TopoJSON assets
+│   └── extract_starters.cjs      # Reproducible starter catalog generator
+├── data/                         # Source wildlife telemetry datasets
+│   └── tracks.json               # Movebank research telemetry (CC0)
+├── fixtures/                     # Compatibility test fixtures
+│   └── sample-pack.wildpack      # Version 1 reference wildpack container
+├── archive/                      # Historical prototypes
+│   └── desktop-publisher/        # Retired desktop React publisher
+├── PACK_FORMAT.md                # Wildpack v1 specification
+└── UPSTREAM-LICENSE              # Dataset licensing & attribution notices
 ```
 
-Open the local Vite URL in a browser on Windows. The publisher catalog includes a blue whale, green sea turtle, caribou, California sea lion, and waved albatross. Select an animal, edit its display fields, generate one or more `WILD-XXXX-XXXX` codes, then choose **Export .wildpack**. If no code has been generated, export still produces a valid pack for the selected animal.
+## Android Development Workflow
 
-## Build
+The Android companion application is completely self-contained in `android_companion_app/`.
 
-```powershell
-npm run build
-npm run preview
+### Requirements
+- Android Studio Ladybug or newer
+- JDK 21 (configured automatically via Gradle Daemon JVM Toolchain)
+- Android SDK 34 (minSdk 28)
+
+### Building and Testing
+```bash
+cd android_companion_app
+./gradlew testDebugUnitTest
+./gradlew assembleDebug
 ```
 
-The current desktop deliverable is a local Vite publisher rather than a packaged Tauri executable. The pack is a ZIP container with a `.wildpack` extension containing `manifest.json`, profile JSON, track JSON, and attribution text.
+To install on a connected device:
+```bash
+./gradlew installDebug
+```
 
-Tracking records are historical observations from Migration Watch / Movebank datasets. They are not live locations. Upstream license text is preserved in `UPSTREAM-LICENSE`.
+*Note: Node.js and desktop publisher builds are not required for regular Android development or app compilation.*
+
+## Data Provenance & Attribution
+
+Tracking records originate from Movebank (movebank.org) research studies and are curated under CC0 1.0 Universal public domain dedication. Upstream citations and licenses are preserved in `UPSTREAM-LICENSE` and within individual animal profile records.

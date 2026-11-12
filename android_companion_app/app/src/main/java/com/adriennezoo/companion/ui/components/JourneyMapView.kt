@@ -1,10 +1,11 @@
 package com.adriennezoo.companion.ui.components
 
 import android.annotation.SuppressLint
-import android.content.Context
-import android.graphics.Bitmap
-import android.net.Uri
+import android.util.Log
+import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -26,6 +27,9 @@ import androidx.webkit.WebViewAssetLoader
 import com.adriennezoo.companion.data.AnimalEntity
 import com.adriennezoo.companion.ui.theme.ForestGreenPrimary
 import com.adriennezoo.companion.viewmodel.MainViewModel
+import org.json.JSONObject
+
+private const val TAG = "JourneyMapView"
 
 class MapJsBridge(private val trackProvider: () -> String?) {
     @JavascriptInterface
@@ -45,12 +49,27 @@ fun JourneyMapView(
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var isPageLoaded by remember { mutableStateOf(false) }
 
+    fun sendTrackToWebView(wv: WebView, json: String) {
+        val escaped = JSONObject.quote(json)
+        val script = """
+            (function() {
+                if (window.updateLayout) window.updateLayout();
+                if (window.loadTrack) {
+                    window.loadTrack($escaped);
+                } else {
+                    window.__pendingTrack = $escaped;
+                }
+                if (window.updateLayout) window.updateLayout();
+            })();
+        """.trimIndent()
+        wv.evaluateJavascript(script, null)
+    }
+
     LaunchedEffect(animal.animalId) {
         val json = viewModel.getTrackJson(animal)
         trackJson = json
-        if (isPageLoaded && webViewRef != null && json != null) {
-            // Escape json for eval or call loadTrack directly
-            webViewRef?.evaluateJavascript("window.loadTrack && window.loadTrack(${json});", null)
+        if (json != null && webViewRef != null) {
+            sendTrackToWebView(webViewRef!!, json)
         }
     }
 
@@ -58,7 +77,26 @@ fun JourneyMapView(
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { context ->
-                WebView(context).apply {
+                object : WebView(context) {
+                    override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
+                        super.onSizeChanged(w, h, ow, oh)
+                        if (h > 0) {
+                            post {
+                                evaluateJavascript(
+                                    """
+                                    (function() {
+                                        if (window.updateLayout) window.updateLayout();
+                                        if (window.fitRoute) window.fitRoute();
+                                    })();
+                                    """.trimIndent(),
+                                    null
+                                )
+                            }
+                        }
+                    }
+                }.apply {
+                    WebView.setWebContentsDebuggingEnabled(true)
+
                     val assetLoader = WebViewAssetLoader.Builder()
                         .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context))
                         .build()
@@ -66,10 +104,10 @@ fun JourneyMapView(
                     settings.apply {
                         javaScriptEnabled = true
                         domStorageEnabled = true
-                        allowFileAccess = false
-                        allowContentAccess = false
-                        useWideViewPort = true
-                        loadWithOverviewMode = true
+                        allowFileAccess = true
+                        allowContentAccess = true
+                        useWideViewPort = false
+                        loadWithOverviewMode = false
                     }
 
                     addJavascriptInterface(
@@ -77,7 +115,24 @@ fun JourneyMapView(
                         "AndroidInterface"
                     )
 
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
+                            Log.d(
+                                TAG,
+                                "JS: ${consoleMessage.message()} (line ${consoleMessage.lineNumber()} in ${consoleMessage.sourceId()})"
+                            )
+                            return true
+                        }
+                    }
+
                     webViewClient = object : WebViewClient() {
+                        override fun onRenderProcessGone(
+                            view: WebView?,
+                            detail: android.webkit.RenderProcessGoneDetail?
+                        ): Boolean {
+                            return true
+                        }
+
                         override fun shouldInterceptRequest(
                             view: WebView,
                             request: WebResourceRequest
@@ -85,11 +140,21 @@ fun JourneyMapView(
                             return assetLoader.shouldInterceptRequest(request.url)
                         }
 
+                        override fun onReceivedError(
+                            view: WebView,
+                            request: WebResourceRequest,
+                            error: WebResourceError
+                        ) {
+                            super.onReceivedError(view, request, error)
+                            Log.e(TAG, "WebView error on ${request.url}: ${error.description}")
+                        }
+
                         override fun onPageFinished(view: WebView, url: String) {
                             super.onPageFinished(view, url)
                             isPageLoaded = true
+                            view.evaluateJavascript("if (window.updateLayout) window.updateLayout();", null)
                             trackJson?.let { json ->
-                                view.evaluateJavascript("window.loadTrack && window.loadTrack(${json});", null)
+                                sendTrackToWebView(view, json)
                             }
                         }
                     }
@@ -101,7 +166,7 @@ fun JourneyMapView(
             update = { webView ->
                 webViewRef = webView
                 if (isPageLoaded && trackJson != null) {
-                    webView.evaluateJavascript("window.loadTrack && window.loadTrack(${trackJson});", null)
+                    sendTrackToWebView(webView, trackJson!!)
                 }
             }
         )
@@ -118,7 +183,8 @@ fun JourneyMapView(
 
     DisposableEffect(animal.animalId) {
         onDispose {
-            // cleanup if needed
+            webViewRef?.destroy()
+            webViewRef = null
         }
     }
 }

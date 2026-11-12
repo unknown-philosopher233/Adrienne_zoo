@@ -34,10 +34,6 @@ import { geoNaturalEarth1 } from 'd3-geo';
 const MAP_W = 1000;
 const MAP_H = 500;
 
-const spherePath = ${JSON.stringify(spherePath)};
-const graticulePath = ${JSON.stringify(graticulePath)};
-const landPath = ${JSON.stringify(landPath)};
-
 const projection = geoNaturalEarth1().fitExtent(
   [
     [12, 12],
@@ -57,29 +53,56 @@ let panY = 0;
 let isDragging = false;
 let startDragX = 0;
 let startDragY = 0;
-let initialPinchDist = null;
-let initialPinchZoom = 1;
 
 function projectTrack(points) {
-  const pts = points.map(([lon, lat, ts]) => {
+  const pts = [];
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const lon = Number(p[0]);
+    const lat = Number(p[1]);
+    const ts = p[2];
+    if (isNaN(lon) || isNaN(lat)) continue;
     const [x, y] = projection([lon, lat]);
-    return { x, y, ts };
-  });
+    pts.push({ x, y, ts });
+  }
+
+  if (pts.length === 0) return { pts: [], cum: [0], total: 1 };
+
   const cum = [0];
   for (let i = 1; i < pts.length; i++) {
+    // Handle international date line jump
     const dx = pts[i].x - pts[i - 1].x;
     const dy = pts[i].y - pts[i - 1].y;
-    cum.push(cum[i - 1] + Math.hypot(dx, dy));
+    const dist = Math.abs(dx) > MAP_W * 0.7 ? 0 : Math.hypot(dx, dy);
+    cum.push(cum[i - 1] + dist);
   }
   return { pts, cum, total: cum[cum.length - 1] || 1 };
 }
 
 function fullPath(proj) {
-  return proj.pts.map((p, i) => \`\${i ? 'L' : 'M'}\${p.x.toFixed(1)},\${p.y.toFixed(1)}\`).join(' ');
+  const { pts } = proj;
+  if (!pts || pts.length === 0) return '';
+  let d = '';
+  for (let i = 0; i < pts.length; i++) {
+    if (i === 0) {
+      d += \`M\${pts[i].x.toFixed(1)},\${pts[i].y.toFixed(1)}\`;
+    } else {
+      const dx = Math.abs(pts[i].x - pts[i - 1].x);
+      if (dx > MAP_W * 0.7) {
+        // Date line crossing: jump without drawing line across globe
+        d += \` M\${pts[i].x.toFixed(1)},\${pts[i].y.toFixed(1)}\`;
+      } else {
+        d += \` L\${pts[i].x.toFixed(1)},\${pts[i].y.toFixed(1)}\`;
+      }
+    }
+  }
+  return d;
 }
 
 function traceAtProgress(proj, prog) {
   const { pts, cum, total } = proj;
+  if (!pts || pts.length === 0) return { head: { x: -100, y: -100, ts: null }, path: '' };
+
   const target = Math.max(0, Math.min(1, prog)) * total;
 
   let i = 1;
@@ -90,27 +113,39 @@ function traceAtProgress(proj, prog) {
   }
 
   const segLen = cum[i] - cum[i - 1] || 1;
-  const t = (target - cum[i - 1]) / segLen;
+  const t = Math.max(0, Math.min(1, (target - cum[i - 1]) / segLen));
   const a = pts[i - 1];
   const b = pts[i];
   const head = {
     x: a.x + (b.x - a.x) * t,
     y: a.y + (b.y - a.y) * t,
-    ts: a.ts + (b.ts - a.ts) * t,
+    ts: a.ts && b.ts ? (typeof a.ts === 'number' && typeof b.ts === 'number' ? a.ts + (b.ts - a.ts) * t : a.ts) : a.ts || b.ts,
   };
 
-  let d = \`M\${pts[0].x.toFixed(1)},\${pts[0].y.toFixed(1)}\`;
-  for (let k = 1; k < i; k++) {
-    d += \` L\${pts[k].x.toFixed(1)},\${pts[k].y.toFixed(1)}\`;
+  let d = '';
+  for (let k = 0; k < i; k++) {
+    if (k === 0) {
+      d += \`M\${pts[k].x.toFixed(1)},\${pts[k].y.toFixed(1)}\`;
+    } else {
+      const dx = Math.abs(pts[k].x - pts[k - 1].x);
+      if (dx > MAP_W * 0.7) {
+        d += \` M\${pts[k].x.toFixed(1)},\${pts[k].y.toFixed(1)}\`;
+      } else {
+        d += \` L\${pts[k].x.toFixed(1)},\${pts[k].y.toFixed(1)}\`;
+      }
+    }
   }
-  d += \` L\${head.x.toFixed(1)},\${head.y.toFixed(1)}\`;
+  const lastDx = Math.abs(head.x - pts[i - 1].x);
+  if (lastDx <= MAP_W * 0.7) {
+    d += \` L\${head.x.toFixed(1)},\${head.y.toFixed(1)}\`;
+  }
   return { head, path: d };
 }
 
 function formatDate(ts) {
   if (!ts) return '';
   const d = new Date(ts);
-  if (isNaN(d.getTime())) return String(ts);
+  if (isNaN(d.getTime())) return String(ts).slice(0, 10);
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -121,7 +156,7 @@ function formatDate(ts) {
 function updateTransform() {
   const g = document.getElementById('map-content');
   if (g) {
-    g.setAttribute('transform', \`translate(\${panX},\${panY}) scale(\${zoom})\`);
+    g.setAttribute('transform', \`translate(\${panX.toFixed(1)},\${panY.toFixed(1)}) scale(\${zoom.toFixed(3)})\`);
   }
 }
 
@@ -144,7 +179,7 @@ function renderFrame() {
     dotEl.setAttribute('cx', trace.head.x);
     dotEl.setAttribute('cy', trace.head.y);
   }
-  if (dateEl) {
+  if (dateEl && trace.head.ts) {
     dateEl.textContent = formatDate(trace.head.ts);
   }
   if (sliderEl) {
@@ -190,6 +225,11 @@ function togglePlay() {
 
 function restart() {
   if (!projected) return;
+  if (isPlaying) {
+    isPlaying = false;
+    updatePlayButton();
+    if (animFrame) cancelAnimationFrame(animFrame);
+  }
   progress = 0;
   renderFrame();
 }
@@ -216,7 +256,7 @@ function fitRoute() {
     if (p.y < minY) minY = p.y;
     if (p.y > maxY) maxY = p.y;
   }
-  const padding = 40;
+  const padding = 50;
   const w = (maxX - minX) || 100;
   const h = (maxY - minY) || 100;
   const zoomX = (MAP_W - padding * 2) / w;
@@ -240,12 +280,17 @@ function resetWorld() {
 }
 
 window.loadTrack = function(data) {
-  if (typeof data === 'string') {
-    data = JSON.parse(data);
+  try {
+    if (typeof data === 'string') {
+      data = JSON.parse(data);
+    }
+  } catch(err) {
+    console.error('Failed to parse track JSON:', err);
+    return;
   }
-  currentTrack = data;
-  if (!data.points || data.points.length === 0) return;
+  if (!data || !data.points || data.points.length === 0) return;
 
+  currentTrack = data;
   projected = projectTrack(data.points);
   const accent = data.accent || '#31543d';
 
@@ -264,80 +309,109 @@ window.loadTrack = function(data) {
   if (haloEl) haloEl.setAttribute('fill', accent);
   if (dotEl) dotEl.setAttribute('fill', accent);
 
-  const startTs = data.startDate || data.points[0][2];
-  const endTs = data.endDate || data.points[data.points.length - 1][2];
+  const startTs = data.startDate || (data.points[0] && data.points[0][2]);
+  const endTs = data.endDate || (data.points[data.points.length - 1] && data.points[data.points.length - 1][2]);
 
-  if (startEl) startEl.textContent = formatDate(startTs);
-  if (endEl) endEl.textContent = formatDate(endTs);
+  if (startEl && startTs) startEl.textContent = formatDate(startTs);
+  if (endEl && endTs) endEl.textContent = formatDate(endTs);
 
   progress = 0;
   isPlaying = false;
   updatePlayButton();
+  updateLayout();
   renderFrame();
   fitRoute();
 };
 
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('path-sphere').setAttribute('d', spherePath);
-  document.getElementById('path-graticule').setAttribute('d', graticulePath);
-  document.getElementById('path-land').setAttribute('d', landPath);
-
-  document.getElementById('btn-play').addEventListener('click', togglePlay);
-  document.getElementById('btn-restart').addEventListener('click', restart);
-  document.getElementById('btn-zoom-in').addEventListener('click', () => setZoom(zoom + 0.5));
-  document.getElementById('btn-zoom-out').addEventListener('click', () => setZoom(zoom - 0.5));
-  document.getElementById('btn-fit').addEventListener('click', fitRoute);
-  document.getElementById('btn-reset').addEventListener('click', resetWorld);
-
-  const slider = document.getElementById('timeline-slider');
-  slider.addEventListener('input', (e) => {
-    if (isPlaying) {
-      isPlaying = false;
-      updatePlayButton();
-      if (animFrame) cancelAnimationFrame(animFrame);
+function updateLayout() {
+  const h = window.innerHeight || document.documentElement.clientHeight || 500;
+  if (h > 0) {
+    document.documentElement.style.height = h + 'px';
+    document.body.style.height = h + 'px';
+    const card = document.querySelector('.map-card');
+    if (card) {
+      card.style.height = h + 'px';
     }
-    progress = parseFloat(e.target.value);
-    renderFrame();
-  });
+  }
+}
+window.updateLayout = updateLayout;
+window.fitRoute = fitRoute;
+window.addEventListener('resize', updateLayout);
+window.addEventListener('orientationchange', updateLayout);
 
-  // Touch and mouse pan & pinch zoom
+function initControls() {
+  updateLayout();
+  requestAnimationFrame(updateLayout);
+  setTimeout(updateLayout, 50);
+  setTimeout(updateLayout, 150);
+  setTimeout(updateLayout, 400);
+  const btnPlay = document.getElementById('btn-play');
+  const btnRestart = document.getElementById('btn-restart');
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
+  const btnFit = document.getElementById('btn-fit');
+  const btnReset = document.getElementById('btn-reset');
+  const slider = document.getElementById('timeline-slider');
   const svg = document.getElementById('map-svg');
 
-  svg.addEventListener('pointerdown', (e) => {
-    isDragging = true;
-    startDragX = e.clientX - panX;
-    startDragY = e.clientY - panY;
-    svg.setPointerCapture(e.pointerId);
-  });
+  if (btnPlay) btnPlay.onclick = togglePlay;
+  if (btnRestart) btnRestart.onclick = restart;
+  if (btnZoomIn) btnZoomIn.onclick = () => setZoom(zoom + 0.5);
+  if (btnZoomOut) btnZoomOut.onclick = () => setZoom(zoom - 0.5);
+  if (btnFit) btnFit.onclick = fitRoute;
+  if (btnReset) btnReset.onclick = resetWorld;
 
-  svg.addEventListener('pointermove', (e) => {
-    if (!isDragging) return;
-    panX = e.clientX - startDragX;
-    panY = e.clientY - startDragY;
-    updateTransform();
-  });
+  if (slider) {
+    slider.oninput = (e) => {
+      if (isPlaying) {
+        isPlaying = false;
+        updatePlayButton();
+        if (animFrame) cancelAnimationFrame(animFrame);
+      }
+      progress = parseFloat(e.target.value);
+      renderFrame();
+    };
+  }
 
-  const stopDrag = (e) => {
-    if (isDragging) {
-      isDragging = false;
-      try { svg.releasePointerCapture(e.pointerId); } catch(_) {}
-    }
-  };
-  svg.addEventListener('pointerup', stopDrag);
-  svg.addEventListener('pointercancel', stopDrag);
+  if (svg) {
+    svg.onpointerdown = (e) => {
+      isDragging = true;
+      startDragX = e.clientX - panX;
+      startDragY = e.clientY - panY;
+      try { svg.setPointerCapture(e.pointerId); } catch(_) {}
+    };
 
-  // Wheel zoom
-  svg.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const rect = svg.getBoundingClientRect();
-    const cx = (e.clientX - rect.left) * (MAP_W / rect.width);
-    const cy = (e.clientY - rect.top) * (MAP_H / rect.height);
-    const delta = e.deltaY < 0 ? 0.3 : -0.3;
-    setZoom(zoom + delta, cx, cy);
-  }, { passive: false });
+    svg.onpointermove = (e) => {
+      if (!isDragging) return;
+      panX = e.clientX - startDragX;
+      panY = e.clientY - startDragY;
+      updateTransform();
+    };
 
-  // Check if Android injected initial data
-  if (window.AndroidInterface && window.AndroidInterface.getInitialTrack) {
+    const stopDrag = (e) => {
+      if (isDragging) {
+        isDragging = false;
+        try { svg.releasePointerCapture(e.pointerId); } catch(_) {}
+      }
+    };
+    svg.onpointerup = stopDrag;
+    svg.onpointercancel = stopDrag;
+
+    svg.onwheel = (e) => {
+      e.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const cx = (e.clientX - rect.left) * (MAP_W / rect.width);
+      const cy = (e.clientY - rect.top) * (MAP_H / rect.height);
+      const delta = e.deltaY < 0 ? 0.3 : -0.3;
+      setZoom(zoom + delta, cx, cy);
+    };
+  }
+
+  // Check pending track
+  if (window.__pendingTrack) {
+    window.loadTrack(window.__pendingTrack);
+    window.__pendingTrack = null;
+  } else if (window.AndroidInterface && window.AndroidInterface.getInitialTrack) {
     try {
       const initData = window.AndroidInterface.getInitialTrack();
       if (initData) window.loadTrack(initData);
@@ -345,31 +419,182 @@ window.addEventListener('DOMContentLoaded', () => {
       console.error(err);
     }
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initControls);
+} else {
+  initControls();
+}
 `;
 
 fs.writeFileSync(mapSrcPath, mapSrcContent);
 
 // Build bundle with esbuild
-esbuild.buildSync({
+const bundleResult = esbuild.buildSync({
   entryPoints: [mapSrcPath],
   bundle: true,
   minify: true,
-  outfile: path.join(outDir, 'map.js'),
+  write: false,
   format: 'iife',
 });
 
+const bundledJs = bundleResult.outputFiles[0].text;
+fs.writeFileSync(path.join(outDir, 'map.js'), bundledJs);
 fs.unlinkSync(mapSrcPath);
 
-// Write index.html and map.css
+const cssContent = `* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #e2e7dc;
+  color: #242820;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+
+.map-card {
+  padding: 8px 10px 8px;
+  background: #e2e7dc;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.map-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.title-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.eyebrow {
+  color: #5d675b;
+  font-size: 9px;
+  font-family: monospace;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.title-block strong {
+  font-size: 13px;
+  color: #242820;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.map-actions button {
+  min-width: 28px;
+  height: 28px;
+  border: 1px solid #c3cec0;
+  color: #405449;
+  background: #f7f8f0;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  touch-action: manipulation;
+}
+
+.map-actions button:active {
+  background: #e4e8dd;
+}
+
+.map-actions .play {
+  padding: 0 10px;
+  color: #f8f6ef;
+  background: #405b4a;
+  border-color: #405b4a;
+}
+
+.map-actions .play span {
+  margin-left: 3px;
+  font-size: 11px;
+}
+
+.map-wrap {
+  flex: 1;
+  min-height: 100px;
+  overflow: hidden;
+  background: #dce6d8;
+  border-radius: 6px;
+  border: 1px solid #cdd7c8;
+  position: relative;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#map-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  cursor: grab;
+}
+
+#map-svg:active {
+  cursor: grabbing;
+}
+
+.ocean { fill: #dce6d8; }
+.land { fill: #f5f2e9; stroke: #b7c5b4; stroke-width: 0.5; }
+.graticule { fill: none; stroke: #b6c8b3; stroke-opacity: 0.55; stroke-width: 0.5; }
+
+.timeline {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  accent-color: #405b4a;
+  height: 18px;
+}
+
+.timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  color: #687363;
+  font-size: 9px;
+  font-family: monospace;
+  margin-top: 2px;
+}
+`;
+
+fs.writeFileSync(path.join(outDir, 'map.css'), cssContent);
+
+// Self-contained index.html with inlined SVG paths, CSS, and JS
 const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Journey Map</title>
-  <link rel="stylesheet" href="map.css">
-  <script src="map.js" defer></script>
+  <style>
+${cssContent}
+  </style>
 </head>
 <body>
   <div class="map-card">
@@ -390,10 +615,10 @@ const htmlContent = `<!DOCTYPE html>
 
     <div class="map-wrap">
       <svg id="map-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
-        <path id="path-sphere" class="ocean" />
+        <path id="path-sphere" class="ocean" d="${spherePath}" />
         <g id="map-content">
-          <path id="path-graticule" class="graticule" />
-          <path id="path-land" class="land" />
+          <path id="path-graticule" class="graticule" d="${graticulePath}" />
+          <path id="path-land" class="land" d="${landPath}" />
           <path id="route-ghost" fill="none" stroke="#2f5d6e" stroke-opacity="0.25" stroke-width="1.6" />
           <path id="route-traveled" fill="none" stroke="#2f5d6e" stroke-width="3.2" stroke-linecap="round" />
           <circle id="marker-halo" cx="-100" cy="-100" r="8" fill="#2f5d6e" opacity="0.2" />
@@ -409,139 +634,11 @@ const htmlContent = `<!DOCTYPE html>
       <span id="end-date">—</span>
     </div>
   </div>
+  <script>
+${bundledJs}
+  </script>
 </body>
 </html>`;
 
-const cssContent = `* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #e2e7dc;
-  color: #242820;
-  user-select: none;
-  -webkit-user-select: none;
-  overflow: hidden;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.map-card {
-  padding: 12px 14px 10px;
-  background: #e2e7dc;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.map-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.title-block {
-  display: flex;
-  flex-direction: column;
-}
-
-.eyebrow {
-  color: #5d675b;
-  font-size: 10px;
-  font-family: monospace;
-  letter-spacing: 0.1em;
-  font-weight: 600;
-}
-
-.title-block strong {
-  font-size: 14px;
-  color: #242820;
-}
-
-.map-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.map-actions button {
-  min-width: 32px;
-  height: 30px;
-  border: 1px solid #c3cec0;
-  color: #405449;
-  background: #f7f8f0;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 8px;
-  touch-action: manipulation;
-}
-
-.map-actions button:active {
-  background: #e4e8dd;
-}
-
-.map-actions .play {
-  padding: 0 12px;
-  color: #f8f6ef;
-  background: #405b4a;
-  border-color: #405b4a;
-}
-
-.map-actions .play span {
-  margin-left: 4px;
-  font-size: 11px;
-}
-
-.map-wrap {
-  flex: 1;
-  overflow: hidden;
-  background: #dce6d8;
-  border-radius: 6px;
-  border: 1px solid #cdd7c8;
-  position: relative;
-  touch-action: none;
-}
-
-#map-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  cursor: grab;
-}
-
-#map-svg:active {
-  cursor: grabbing;
-}
-
-.ocean { fill: #dce6d8; }
-.land { fill: #f5f2e9; stroke: #b7c5b4; stroke-width: 0.5; }
-.graticule { fill: none; stroke: #b6c8b3; stroke-opacity: 0.55; stroke-width: 0.5; }
-
-.timeline {
-  display: block;
-  width: 100%;
-  margin-top: 10px;
-  accent-color: #405b4a;
-  height: 20px;
-}
-
-.timeline-labels {
-  display: flex;
-  justify-content: space-between;
-  color: #687363;
-  font-size: 10px;
-  font-family: monospace;
-  margin-top: 4px;
-}
-`;
-
 fs.writeFileSync(path.join(outDir, 'index.html'), htmlContent);
-fs.writeFileSync(path.join(outDir, 'map.css'), cssContent);
-console.log('Map assets generated successfully in', outDir);
+console.log('Self-contained offline map assets generated successfully in', outDir);

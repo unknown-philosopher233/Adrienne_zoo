@@ -1,21 +1,21 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+html, body {
+  width: 100%;
+  height: 100%;
   background: #e2e7dc;
   color: #242820;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   user-select: none;
   -webkit-user-select: none;
   overflow: hidden;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 .map-card {
-  padding: 12px 14px 10px;
+  padding: 8px 10px 8px;
   background: #e2e7dc;
   display: flex;
   flex-direction: column;
+  width: 100%;
   height: 100%;
 }
 
@@ -23,49 +23,54 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: nowrap;
+  gap: 4px;
 }
 
 .title-block {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .eyebrow {
   color: #5d675b;
-  font-size: 10px;
+  font-size: 9px;
   font-family: monospace;
   letter-spacing: 0.1em;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .title-block strong {
-  font-size: 14px;
+  font-size: 13px;
   color: #242820;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .map-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .map-actions button {
-  min-width: 32px;
-  height: 30px;
+  min-width: 28px;
+  height: 28px;
   border: 1px solid #c3cec0;
   color: #405449;
   background: #f7f8f0;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 8px;
+  padding: 0 6px;
   touch-action: manipulation;
 }
 
@@ -74,31 +79,36 @@ body {
 }
 
 .map-actions .play {
-  padding: 0 12px;
+  padding: 0 10px;
   color: #f8f6ef;
   background: #405b4a;
   border-color: #405b4a;
 }
 
 .map-actions .play span {
-  margin-left: 4px;
+  margin-left: 3px;
   font-size: 11px;
 }
 
 .map-wrap {
   flex: 1;
+  min-height: 100px;
   overflow: hidden;
   background: #dce6d8;
   border-radius: 6px;
   border: 1px solid #cdd7c8;
   position: relative;
   touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #map-svg {
   display: block;
   width: 100%;
   height: 100%;
+  max-height: 100%;
   cursor: grab;
 }
 
@@ -113,16 +123,16 @@ body {
 .timeline {
   display: block;
   width: 100%;
-  margin-top: 10px;
+  margin-top: 6px;
   accent-color: #405b4a;
-  height: 20px;
+  height: 18px;
 }
 
 .timeline-labels {
   display: flex;
   justify-content: space-between;
   color: #687363;
-  font-size: 10px;
+  font-size: 9px;
   font-family: monospace;
-  margin-top: 4px;
+  margin-top: 2px;
 }

@@ -1,6 +1,6 @@
 # Wildpack Format Specification (Version 1)
 
-A `.wildpack` file is a ZIP archive containing wildlife tracking records, animal profiles, activation codes, and attribution data exported by the desktop publisher and consumed by the Adrienne Zoo Android companion.
+A `.wildpack` file is a ZIP archive containing wildlife tracking records, animal profiles, activation codes, and attribution data consumed by the Adrienne Zoo Android companion for modular offline content distribution.
 
 ## Archive Structure
 

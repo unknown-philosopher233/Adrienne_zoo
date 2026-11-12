@@ -106,6 +106,7 @@ class CatalogReconciler(
                 packVersion = BUNDLED_CATALOG_VERSION,
                 segmentOrder = 0,
                 trackFilePath = trackFile.absolutePath,
+                journalFilePath = null,
                 firstObservation = animal.firstObservation,
                 lastObservation = animal.lastObservation,
                 startOffsetMs = 0L,

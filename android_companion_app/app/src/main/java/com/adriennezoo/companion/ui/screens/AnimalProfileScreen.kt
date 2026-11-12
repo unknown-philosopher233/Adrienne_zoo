@@ -71,6 +71,12 @@ import com.adriennezoo.companion.ui.theme.TextPrimary
 import com.adriennezoo.companion.ui.theme.TextSecondary
 import com.adriennezoo.companion.viewmodel.MainViewModel
 import java.io.File
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.HorizontalDivider
+import com.adriennezoo.companion.replay.ReplayState
+import com.adriennezoo.companion.replay.ReplayPhase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,6 +89,14 @@ fun AnimalProfileScreen(
 ) {
     val animalFlow = remember(animalId) { viewModel.getAnimalById(animalId) }
     val animal by animalFlow.collectAsState(initial = null)
+
+    var replayState by remember(animalId) { mutableStateOf<ReplayState?>(null) }
+    
+    LaunchedEffect(animal) {
+        animal?.let {
+            replayState = viewModel.getReplayState(it)
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -401,6 +415,65 @@ fun AnimalProfileScreen(
                         Text(currentAnimal.source, fontSize = 11.sp, color = TextMuted, lineHeight = 15.sp)
                     }
                 }
+
+                // Replay & Field Journal Section
+                val state = replayState
+                if (state != null && state.revealedJournals.isNotEmpty()) {
+                    Text(
+                        text = "FIELD JOURNAL",
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = ForestGreenPrimary,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                    )
+                    
+                    state.revealedJournals.forEach { entry ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            colors = CardDefaults.cardColors(containerColor = LinenCard),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, BorderColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = entry.timestampUtc.substring(0, 10),
+                                        fontSize = 10.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = TextMuted
+                                    )
+                                    val days = entry.replayOffsetMs / (1000 * 60 * 60 * 24)
+                                    Text(
+                                        text = "Day $days",
+                                        fontSize = 10.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = accentColor
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = entry.title,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = entry.body,
+                                    fontSize = 14.sp,
+                                    color = TextSecondary,
+                                    lineHeight = 20.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
             }
         }
     }

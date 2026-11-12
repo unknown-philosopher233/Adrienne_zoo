@@ -128,7 +128,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return animalDao.getAnimalById(id)
     }
 
-    suspend fun getTrackJson(animal: AnimalEntity): String? {
-        return contentRepository.getTrackPayload(animal)
+    suspend fun getReplayState(animal: AnimalEntity): com.adriennezoo.companion.replay.ReplayState? = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        val segments = animalDao.getTimelineSegmentsForAnimal(animal.animalId)
+        val segment = segments.firstOrNull() ?: return@withContext null
+        com.adriennezoo.companion.replay.ReplayEngine.resolveState(animal, segment)
+    }
+
+    suspend fun getTrackJson(animal: AnimalEntity): String? = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        val state = getReplayState(animal) ?: return@withContext null
+        
+        val outObj = com.google.gson.JsonObject()
+        outObj.addProperty("animalId", animal.animalId)
+        outObj.addProperty("displayName", animal.displayName)
+        outObj.addProperty("accent", animal.accent)
+        outObj.addProperty("startDate", animal.firstObservation ?: "")
+        outObj.addProperty("endDate", state.latestObservationDate ?: animal.firstObservation ?: "")
+        outObj.add("points", state.revealedPointsJson)
+        outObj.toString()
     }
 }

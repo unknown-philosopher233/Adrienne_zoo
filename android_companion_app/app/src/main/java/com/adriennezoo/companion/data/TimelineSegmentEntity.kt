@@ -20,6 +20,7 @@ data class TimelineSegmentEntity(
     val packVersion: Int,
     val segmentOrder: Int,
     val trackFilePath: String,
+    val journalFilePath: String?,
     val firstObservation: String?,
     val lastObservation: String?,
     val startOffsetMs: Long,

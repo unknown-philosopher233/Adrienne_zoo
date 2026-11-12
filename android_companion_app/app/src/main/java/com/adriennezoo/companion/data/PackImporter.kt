@@ -358,6 +358,19 @@ class PackImporter(
                 it.write(sanitizedTrackObj.toString().toByteArray(Charsets.UTF_8))
             }
 
+            var localJournalPath: String? = null
+            if (!journalPath.isNullOrBlank()) {
+                val journalBytes = findArchiveEntry(entriesMap, journalPath)
+                if (journalBytes != null) {
+                    val journalFileName = if (segmentOrder == 0) "${safeId}_journal.json" else "${safeId}_seg${segmentOrder}_journal.json"
+                    val journalFile = File(tracksDir, journalFileName)
+                    FileOutputStream(journalFile).use {
+                        it.write(journalBytes)
+                    }
+                    localJournalPath = journalFile.absolutePath
+                }
+            }
+
             // Handle optional image
             var localImagePath: String? = null
             val imgRef = profileJson.get("image")?.asString
@@ -427,6 +440,7 @@ class PackImporter(
                     packVersion = packVersion,
                     segmentOrder = segmentOrder,
                     trackFilePath = trackFile.absolutePath,
+                    journalFilePath = localJournalPath,
                     firstObservation = firstValidObs,
                     lastObservation = lastValidObs,
                     startOffsetMs = firstOffsetMs,
